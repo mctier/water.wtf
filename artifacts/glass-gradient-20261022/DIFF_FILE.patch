@@ -1,0 +1,130 @@
+--- baseline/src/client/java/com/utilitymod/gui/CardGui.java
++++ modified/src/client/java/com/utilitymod/gui/CardGui.java
+@@ -220,9 +220,9 @@
+         }
+         boolean glassReady = CardGuiStyle.glass && com.utilitymod.echo.render.GlassRenderer.available();
+         if (!glassReady) com.utilitymod.echo.render.GlassRenderer.reportCardGate(CardGuiStyle.glass);
+-        Draw.rect(graphics, panelX, panelY, panelW, panelH, radius, Colors.withAlpha(CardGuiStyle.back, glassReady ? .22f : .72f));
+-        com.utilitymod.gui.Rounded.outline(graphics, panelX, panelY, panelW, panelH, radius, 1f, 0x35F4C4EF);
+-        Draw.rect(graphics, panelX, panelY, sidebarW, panelH, radius, Colors.withAlpha(CardGuiStyle.background, .12f));
++        Draw.rect(graphics, panelX, panelY, panelW, panelH, radius, Colors.withAlpha(CardGuiStyle.back, glassReady ? .04f : .72f));
++        com.utilitymod.gui.Rounded.outline(graphics, panelX, panelY, panelW, panelH, radius, 1f, 0x18F4C4EF);
++        Draw.rect(graphics, panelX, panelY, sidebarW, panelH, radius, Colors.withAlpha(CardGuiStyle.background, .08f));
+         graphics.fill(contentX()-1, panelY, contentX(), panelY+panelH, 0x22F0B6E5);
+         graphics.fill(contentX(), panelY+Math.round(48*scale), panelX+panelW, panelY+Math.round(48*scale)+1, 0x22FFFFFF);
+ 
+@@ -525,7 +525,7 @@
+ 
+         int base = Colors.lerp(0x244E1848, 0x407C366C, ht * 0.45f);
+         int cardColor = on ? Colors.lerp(base, 0x507C366C, 0.22f * ts + 0.08f) : base;
+-        Rounded.outline(g, x, y, w, h, Math.round(CardGuiStyle.cardRadius * scale), Math.max(.5f,scale*.5f), 0x20E3A6D8);
++        Rounded.outline(g, x, y, w, h, Math.round(CardGuiStyle.cardRadius * scale), Math.max(.5f,scale*.5f), 0x0BE3A6D8);
+         Draw.rect(g, x+1, y+1, w-2, h-2, Math.round(CardGuiStyle.cardRadius * scale), cardColor);
+         Draw.rect(g, x + Math.round(8 * scale), y, w - Math.round(16 * scale), 1, 0,
+                 Colors.withAlpha(0xFFFFFFFF, 0.05f + 0.05f * ht));
+--- baseline/src/client/java/com/utilitymod/echo/render/GlassRenderer.java
++++ modified/src/client/java/com/utilitymod/echo/render/GlassRenderer.java
+@@ -79,6 +79,9 @@
+     /** one-shot gate diag keys (plain literals, diag lane) */
+     private static final java.util.Map<String, Boolean> WARNED = new java.util.HashMap<>();
+ 
++    // Scoped Cards material; reset on every flush so HUD glass stays unchanged.
++    private static float cardMaterial = 0f;
++
+     private GlassRenderer() {}
+ 
+     public static boolean available() {
+@@ -101,6 +104,7 @@
+      * @param reducedMotion reduces optical displacement; TINTED itself has no time animation
+      */
+     public static void flushCard(DrawContext ctx, int tint, float blur, boolean reducedMotion) {
++        float previousCardMaterial = cardMaterial;
+         Runnable previousSettings = settings;
+         Mode previousMode = mode;
+         int previousIterations = blurIterations;
+@@ -109,6 +113,7 @@
+         float previousR = tintR, previousG = tintG, previousB = tintB;
+         float previousStrength = tintStrength, previousChroma = chroma, previousDarkness = darkness;
+         try {
++            cardMaterial = 1f;
+             settings = null;
+             mode = Mode.TINTED;
+             blurRadius = Float.isFinite(blur) ? Math.max(0f, Math.min(24f, blur)) : 10f;
+@@ -124,6 +129,7 @@
+             darkness = 0.02f;
+             flush(ctx);
+         } finally {
++            cardMaterial = previousCardMaterial;
+             mode = previousMode;
+             blurIterations = previousIterations;
+             blurRadius = previousRadius;
+@@ -357,6 +363,7 @@
+             uniform1f(program, LT.L26, tintStrength);
+             uniform1f(program, LT.L27, chroma);
+             uniform1f(program, LT.L28, darkness);
++            uniform1f(program, "uCardMaterial", cardMaterial);
+             uniform1f(program, LT.L29, lensRefractPx);
+             uniform1f(program, LT.L30, lensChromaPx);
+             uniform1f(program, LT.L31, lensRipple);
+--- baseline/src/main/resources/assets/utilitymod/shaders/glass/lg_tinted.frag
++++ modified/src/main/resources/assets/utilitymod/shaders/glass/lg_tinted.frag
+@@ -15,6 +15,8 @@
+ uniform float uChromaStrength;
+ uniform float uDarkness;
+ uniform float uAlpha;
++uniform float uCardMaterial;
++uniform vec2 uScreen;
+ 
+ in vec2 v_uv;
+ in vec2 vMidPointNDC;
+@@ -39,14 +41,50 @@
+     float refraction = sign(fd) * pow(abs(fd), uRefractionPower);
+     vec2 sampleUV = clamp((vMidPointNDC + vLocalOffsetNDC * refraction) * 0.5 + vec2(0.5), vec2(0.001), vec2(0.999));
+ 
++    // Cards use a bounded edge lens, not a panel-wide magnifier.
++    float rim = 1.0 - smoothstep(0.0, 18.0, max(-sd, 0.0));
++    vec2 pixelUV = vec2(1.0, -1.0) / max(uScreen, vec2(1.0));
++    vec2 local = (v_uv - 0.5) * uQuadSize;
++    vec2 q = abs(local) - half_ + min(uRadius, min(half_.x, half_.y));
++    vec2 normal = q.x > q.y ? vec2(sign(local.x), 0.0) : vec2(0.0, sign(local.y));
++    if (q.x > 0.0 && q.y > 0.0) normal = normalize(max(q, vec2(0.0))) * sign(local);
++    if (uCardMaterial > 0.5) {
++        vec2 baseUV = (vMidPointNDC + vLocalOffsetNDC) * 0.5 + 0.5;
++        float lensPixels = 4.0 * clamp(uRefractionPower / 0.32, 0.0, 1.0);
++        sampleUV = clamp(baseUV - normal * pixelUV * lensPixels * rim * rim, vec2(0.001), vec2(0.999));
++    }
++
+     // Subtle chromatic softness.
+     vec2 chromaDir = normalize(vLocalOffsetNDC + 0.00001);
+     vec2 chromaOffset = chromaDir * fresnel * uChromaStrength;
++    if (uCardMaterial > 0.5) chromaOffset = normal * pixelUV * 0.35 * rim * clamp(uChromaStrength / 0.0008, 0.0, 1.0);
+     vec4 color = vec4(
+             textureLod(uBlurTex, sampleUV + chromaOffset, uBlurLod).r,
+             textureLod(uBlurTex, sampleUV, uBlurLod).g,
+             textureLod(uBlurTex, sampleUV - chromaOffset, uBlurLod).b,
+             1.0);
++
++    if (uCardMaterial > 0.5) {
++        // Panel-space pigment stays rich even against bright sky or pale stone.
++        vec3 topPlum = uTintColor * vec3(0.34, 0.32, 0.44);
++        vec3 lowerPlum = uTintColor * vec3(0.74, 0.32, 0.81);
++        vec3 pigment = mix(topPlum, lowerPlum, smoothstep(0.0, 1.0, v_uv.y));
++        vec2 pool = (v_uv - vec2(0.25, 0.82)) / vec2(0.62, 0.75);
++        float magentaPool = exp(-2.2 * dot(pool, pool));
++        vec3 magenta = min(uTintColor * vec3(1.24, 0.12, 0.97), vec3(1.0));
++        pigment = mix(pigment, magenta, magentaPool * 0.88);
++        float darkRight = smoothstep(0.57, 1.0, v_uv.x) * 0.78;
++        pigment = mix(pigment, vec3(0.035, 0.012, 0.045), darkRight);
++        // Preserve backdrop details without washing the pigment into gray.
++        vec3 scene = color.rgb / (vec3(1.0) + color.rgb * 1.25);
++        float pigmentWeight = mix(0.64, 0.78, darkRight);
++        color.rgb = mix(scene * vec3(0.80, 0.48, 0.76), pigment, pigmentWeight);
++        float lip = exp(-max(-sd, 0.0) / 1.25);
++        float directional = 0.45 + 0.55 * max(0.0, dot(normal, normalize(vec2(-0.6, -0.8))));
++        color.rgb += vec3(0.85, 0.57, 0.83) * lip * directional * 0.20;
++        FragColor = vec4(color.rgb, pow(edge, 1.35) * uAlpha);
++        return;
++    }
+ 
+     // Low-frequency material diffusion.
+     float micro = sin(gl_FragCoord.x * 0.015 + gl_FragCoord.y * 0.008) * sin(gl_FragCoord.y * 0.012 - gl_FragCoord.x * 0.006);

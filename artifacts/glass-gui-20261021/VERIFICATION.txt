@@ -1,0 +1,32 @@
+BASELINE
+COMMAND: python artifacts/glass-gui-20261021/verify.py artifacts/glass-gui-20261021/baseline baseline
+OUTPUT: PASS: baseline has no Cards-only motion/style system or scoped glass call
+EXIT: 0
+MODIFIED
+COMMAND: python artifacts/glass-gui-20261021/verify.py . modified
+OUTPUT: PASS: Cards visual tokens persist; edge-motion coordinates drive rendering/hitboxes; scoped glass and in-shell pages exist
+EXIT: 0
+MOTION
+COMMAND: "C:/Program Files/Eclipse Adoptium/jdk-21.0.12.8-hotspot/bin/java.exe" -cp artifacts/glass-gui-20261021/motion-test com.utilitymod.gui.CardGuiMotionTest
+OUTPUT: PASS: edge direction, corners, center, 30/60/144 FPS, bounds, stalls, settle, freeze, reduced motion and invalid inputs
+EXIT: 0
+ROLLBACK
+COMMAND: python artifacts/glass-gui-20261021/verify.py artifacts/glass-gui-20261021/rollback-test baseline
+OUTPUT: PASS: baseline has no Cards-only motion/style system or scoped glass call
+EXIT: 0
+BUILD
+COMMAND: gradle build --offline -Parchives_base_name=utilitymod-liquid-cards --console=plain
+INPUT: modified CardGui, CardGuiStyle, GuiConfig, GlassRenderer and CardGuiMotion
+OUTPUT: BUILD SUCCESSFUL in 1m 17s
+EXIT: 0
+ROLLBACK SHELL
+COMMAND: bash artifacts/glass-gui-20261021/ROLLBACK.sh artifacts/glass-gui-20261021/rollback-test
+OUTPUT: ROLLBACK restored CardGui, GuiConfig and GlassRenderer; removed CardGuiMotion and CardGuiStyle
+EXIT: 0
+Restored behavior/status: every original SHA256 matches in rollback-test; CardGuiMotion and CardGuiStyle are absent there. Workspace source remains modified.
+Changed branches/fields: CardGui layoutMotion, Cards shell/page renderer, persisted CardGuiStyle tokens, scoped GlassRenderer.flushCard.
+Visual validation scope: source/layout checks plus build and mathematical motion tests passed. Live Minecraft capture is pending.
+C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\glass-gui-20261021\MODIFIED_FILE
+C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\glass-gui-20261021\DIFF_FILE.patch
+C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\glass-gui-20261021\VERIFICATION.txt
+C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\glass-gui-20261021\ROLLBACK.sh

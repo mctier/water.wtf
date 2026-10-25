@@ -1,0 +1,32 @@
+Changed branch: HudOverlay queued clicks are counted on button transitions; duplicate polled edges suppressed.
+Original SHA256: 69c4a062d26dfcb39d9c8e9fe13bf635ec5accb096edd6b25f7e0ec2533dc45e
+
+BASELINE
+COMMAND: python artifacts/cps-counter-fix/verify.py artifacts/cps-counter-fix/BASELINE.java 20 artifacts/cps-counter-fix/test-baseline
+INPUT: 5 queued left clicks per tick for 20 ticks, alternating pressed/released frames; then physical-only clicks.
+OUTPUT: PASS: queued 100 clicks across 20 ticks; counted 20
+PASS: physical-only clicks retained
+EXIT: 0
+MODIFIED
+COMMAND: python artifacts/cps-counter-fix/verify.py artifacts/cps-counter-fix/MODIFIED_FILE.java 100 artifacts/cps-counter-fix/test-modified
+INPUT: 5 queued left clicks per tick for 20 ticks, alternating pressed/released frames; then physical-only clicks.
+OUTPUT: PASS: queued 100 clicks across 20 ticks; counted 100
+PASS: physical-only clicks retained
+EXIT: 0
+ROLLBACK
+COMMAND: python artifacts/cps-counter-fix/verify.py artifacts/cps-counter-fix/rollback-test.java 20 artifacts/cps-counter-fix/test-rollback
+INPUT: 5 queued left clicks per tick for 20 ticks, alternating pressed/released frames; then physical-only clicks.
+OUTPUT: PASS: queued 100 clicks across 20 ticks; counted 20
+PASS: physical-only clicks retained
+EXIT: 0
+Rollback operation: bash artifacts/cps-counter-fix/ROLLBACK.sh artifacts/cps-counter-fix/rollback-test.java; empty output; exit 0.
+Restored behavior: original 20-click undercount reproduced on copy; original bytes restored. Live source remains modified.
+These tests exercise extracted production HUD counting code, not server-accepted attacks or a live game.
+C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\cps-counter-fix\MODIFIED_FILE.java
+C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\cps-counter-fix\DIFF_FILE.patch
+C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\cps-counter-fix\VERIFICATION.txt
+C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\cps-counter-fix\ROLLBACK.sh
+BUILD: gradle build --offline -Parchives_base_name=utilitymod-drain100-counterfix --console=plain
+OUTPUT: BUILD SUCCESSFUL in 31s
+EXIT: 0
+JAR reopened: HudOverlay$Keystrokes.class present.

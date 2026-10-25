@@ -1,0 +1,121 @@
+package com.utilitymod.echo.features.impl.cpvp;
+
+import com.utilitymod.echo.event.EventSubscribe;
+import com.utilitymod.echo.event.impl.EventHandleInput;
+import com.utilitymod.echo.utils.EncryptedString;
+import com.utilitymod.echo.features.Category;
+import com.utilitymod.echo.utils.EncryptedString;
+import com.utilitymod.echo.features.Feature;
+import com.utilitymod.echo.utils.EncryptedString;
+import com.utilitymod.echo.features.FeatureInfo;
+import com.utilitymod.echo.utils.EncryptedString;
+import com.utilitymod.echo.features.settings.impl.BoolSetting;
+import com.utilitymod.echo.utils.EncryptedString;
+import com.utilitymod.echo.features.settings.impl.FloatSetting;
+import com.utilitymod.echo.utils.EncryptedString;
+import com.utilitymod.echo.features.settings.impl.IntSetting;
+import com.utilitymod.echo.utils.EncryptedString;
+import com.utilitymod.echo.features.settings.impl.KeybindSetting;
+import com.utilitymod.echo.utils.EncryptedString;
+import com.utilitymod.echo.features.settings.impl.ModeSetting;
+import com.utilitymod.echo.utils.EncryptedString;
+import com.utilitymod.echo.features.settings.impl.RangeSetting;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.Item;
+import net.minecraft.item.Items;
+
+/**
+ * LegacyPort Double Anchor: Macro Bind runs place â†’ charge â†’ explode â†’ place â†’ charge â†’ explode at your
+ * crosshair (all vanilla crosshair clicks), optionally waiting for the enemy's damage tick before the
+ * second anchor, and optionally capping with a glowstone block. Hold Repeat keeps cycling while held.
+ */
+public class Octave extends Feature {
+    private final FloatSetting chance = new FloatSetting(new EncryptedString(new char[]{0xa8a3, 0xb16a, 0xd139, 0x2279, 0x37dd, 0xbc07}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be, 0xb10f}), 100f, 0f, 100f, 1f);
+    private final BoolSetting glowCap = new BoolSetting(new EncryptedString(new char[]{0xa8a7, 0x9626, 0x82c2, 0x379e, 0x0b28, 0x1c9c, 0x2277, 0xb15c, 0xd13d, 0xbc1e}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be, 0xb10f, 0x0b5c, 0x82ad, 0x1cf2, 0x9643}), false);
+    private final RangeSetting capDelay = new RangeSetting(new EncryptedString(new char[]{0x2274, 0xd13e, 0x37c7, 0xa8ae, 0xbc08}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be}), 50f, 50f, 0f, 500f, 1f);
+    private final KeybindSetting bind = new KeybindSetting(new EncryptedString(new char[]{0xa8aa, 0x9627, 0x82c4, 0x37d1, 0x0b1e, 0x1c9c, 0x227b, 0xb12f, 0xd137, 0xbc1b}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be, 0xb10f, 0x0b5c, 0x82ad, 0x1cf2, 0x9643}), -1);
+    private final BoolSetting holdRepeat = new BoolSetting(new EncryptedString(new char[]{0x4a1e, 0x76b1, 0xf044, 0xb12f, 0x227b, 0xd137, 0x0b14, 0xebb3, 0x82c2, 0x1c9e, 0x9627, 0x11b0, 0xa8aa, 0x37d1, 0xfcf7, 0x6553, 0xbc1b}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be, 0xb10f, 0x0b5c, 0x82ad, 0x1cf2, 0x9643, 0x1190, 0xebe1, 0x6536, 0xfc87, 0x76d4, 0xf025, 0x4a6a}), false);
+    private final RangeSetting stageDelay = new RangeSetting(new EncryptedString(new char[]{0x11e9, 0xa8aa, 0xbc1b, 0x227b, 0x1c9e, 0x82c8, 0x0b18, 0xd137, 0xb12f, 0x9622, 0x37d1}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be, 0xb10f, 0x0b5c, 0x82ad, 0x1cf2, 0x9643, 0x1190}), 30f, 30f, 0f, 500f, 1f);
+    private final ModeSetting swap = new ModeSetting(new EncryptedString(new char[]{0xa8aa, 0x9633, 0x82da, 0x37d1, 0x0b0f, 0x1c93, 0x227b, 0xb12f, 0xd137, 0xbc1b}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be, 0xb10f, 0x0b5c, 0x82ad, 0x1cf2, 0x9643}), new EncryptedString(new char[]{0x2279, 0xa8bc, 0xd129, 0xbc19}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69}), new EncryptedString(new char[]{0x2276, 0xa8a4, 0xd134, 0xbc0c}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69}), new EncryptedString(new char[]{0x2279, 0xa8bc, 0xd129, 0xbc19}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69}));
+    private final BoolSetting swapBack = new BoolSetting(new EncryptedString(new char[]{0x82da, 0x76bf, 0x0b0f, 0xeba3, 0x9633, 0xa8aa, 0x37d1, 0x1c93, 0xfce4, 0xbc1b, 0xb12f, 0xd137, 0x6557, 0x227b, 0x11b0}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be, 0xb10f, 0x0b5c, 0x82ad, 0x1cf2, 0x9643, 0x1190, 0xebe1, 0x6536, 0xfc87, 0x76d4}), true);
+    private final IntSetting cargoSlot = new IntSetting(new EncryptedString(new char[]{0x6553, 0xa8aa, 0xfca7, 0x7687, 0xf049, 0xeb85, 0x962f, 0x37d1, 0x82d5, 0xb12f, 0xbc1b, 0x4a05, 0x1c82, 0xc5cf, 0x227b, 0xd137, 0x11ff, 0x0b19}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be, 0xb10f, 0x0b5c, 0x82ad, 0x1cf2, 0x9643, 0x1190, 0xebe1, 0x6536, 0xfc87, 0x76d4, 0xf025, 0x4a6a, 0xc5bb}), 8, 1, 9);
+    private final BoolSetting blipHurt = new BoolSetting(new EncryptedString(new char[]{0x4a01, 0x76bd, 0xf046, 0xb12f, 0x227b, 0xd137, 0x0b18, 0xeb84, 0x82cc, 0x1c9f, 0x9622, 0x11f7, 0xa8aa, 0x37d1, 0xfcd3, 0x6516, 0xbc1b}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be, 0xb10f, 0x0b5c, 0x82ad, 0x1cf2, 0x9643, 0x1190, 0xebe1, 0x6536, 0xfc87, 0x76d4, 0xf025, 0x4a6a}), true);
+    private final FloatSetting blipHurtRange = new FloatSetting(new EncryptedString(new char[]{0xeb84, 0xb12f, 0xd938, 0x4a01, 0x76bd, 0x1c9f, 0xbc1b, 0x0b18, 0xa429, 0xf046, 0x11f7, 0xa8aa, 0xc59b, 0x227b, 0xd137, 0x82cc, 0x9622, 0x6516, 0x2a98, 0x5f5a, 0x37d1, 0xfcd3, 0x50c0}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be, 0xb10f, 0x0b5c, 0x82ad, 0x1cf2, 0x9643, 0x1190, 0xebe1, 0x6536, 0xfc87, 0x76d4, 0xf025, 0x4a6a, 0xc5bb, 0x5f08, 0xd959, 0x50ae, 0x2aff, 0xa44c}), 10f, 1f, 20f, .5f);
+    private final IntSetting maxWait = new IntSetting(new EncryptedString(new char[]{0x3ffc, 0x0b18, 0xc59b, 0xd137, 0x37d1, 0x2adf, 0x5f45, 0xb12f, 0xa8aa, 0x11f7, 0x76bd, 0xa41b, 0x6516, 0xbc1b, 0x9622, 0xd938, 0xeb84, 0x82cc, 0xf046, 0x227b, 0x3347, 0x50d6, 0xb98b, 0x4a01, 0x1c9f, 0xfcd3}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be, 0xb10f, 0x0b5c, 0x82ad, 0x1cf2, 0x9643, 0x1190, 0xebe1, 0x6536, 0xfc87, 0x76d4, 0xf025, 0x4a6a, 0xc5bb, 0x5f08, 0xd959, 0x50ae, 0x2aff, 0xa44c, 0x3f9d, 0xb9e2, 0x3333}), 500, 0, 2000);
+
+    private final Cpvp.Edge edge = new Cpvp.Edge();
+    private int stage = -1;      // 0..5 = place,charge,explode,place,charge,explode; 6 = glow cap
+    private int home = -1;
+    private long readyAt, waitStart;
+
+    public Octave() {
+        super(new FeatureInfo(new EncryptedString(new char[]{0x226d, 0x9620, 0x11f8, 0xeb8e, 0x82ec, 0x0b7c, 0xa8a4, 0xbc0b, 0x1c9c, 0xd13e, 0x37d2, 0x6544, 0xb16a}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be, 0xb10f, 0x0b5c, 0x82ad, 0x1cf2, 0x9643, 0x1190, 0xebe1, 0x6536}), new EncryptedString(new char[]{0x1814, 0xa46c, 0xb50f, 0xcdf1, 0xd931, 0xb16e, 0xc5d5, 0xa8be, 0x82cb, 0xf008, 0x7230, 0x9e48, 0x0038, 0xebc1, 0xfcf0, 0x50c1, 0xe73b, 0xc97d, 0x379e, 0x7edf, 0x93a1, 0x0b7c, 0x4304, 0x5f6b, 0x11fc, 0xa1b2, 0x3b65, 0x9bbb, 0x3342, 0x04b4, 0x8af5, 0xd2b1, 0x962f, 0x76bb, 0xda9f, 0x0cd5, 0x66ae, 0x6d35, 0x479a, 0xf41f, 0xef57, 0xd128, 0x4fab, 0xbc1a, 0x1c87, 0xac51, 0x866c, 0xf8d8, 0xb987, 0x261f, 0x58ad, 0xc14e, 0x2276, 0x7a0c, 0xe0be, 0x1587, 0x2a8d, 0x6542, 0x3fee, 0x4a0b}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be, 0xb10f, 0x0b5c, 0x82ad, 0x1cf2, 0x9643, 0x1190, 0xebe1, 0x6536, 0xfc87, 0x76d4, 0xf025, 0x4a6a, 0xc5bb, 0x5f08, 0xd959, 0x50ae, 0x2aff, 0xa44c, 0x3f9d, 0xb9e2, 0x3333, 0x8a80, 0x04d1, 0x9e26, 0x1877, 0x93c4, 0x6d15, 0xe75a, 0x7eab, 0xf8f8, 0x7249, 0xcd9e, 0x47ef, 0xc13c, 0x588d, 0xd2d2, 0xac23, 0x2670, 0xa1c1, 0x3b16, 0xb567, 0x0cb4, 0x8605, 0x004a, 0x9b9b, 0x15e8, 0xef39, 0x668e, 0xe0df, 0x7a2c, 0xf47d, 0x4fc2, 0xc913, 0x4360, 0xdab1}), Category.COMBAT));
+        Cpvp.track();
+    }
+
+    @EventSubscribe
+    @SuppressWarnings("unused")
+    private void onInput(EventHandleInput.Early e) {
+        if (isNull() || mc.currentScreen != null) return;
+        boolean pressed = edge.pressed(bind.getKey());
+        if (stage < 0) {
+            boolean go = pressed || (holdRepeat.getValue() && edge.held(bind.getKey()));
+            if (!go || Math.random() * 100 >= chance.getValue()) return;
+            stage = 0;
+            home = Cpvp.selected();
+            waitStart = 0;
+        }
+        if (System.currentTimeMillis() < readyAt) return;
+        var hit = Cpvp.crosshairBlock();
+        if (hit == null) { finish(); return; }
+
+        switch (stage) {
+            case 0, 3 -> { if (click(Items.RESPAWN_ANCHOR)) next(stageDelay); }
+            case 1, 4 -> {
+                if (!Cpvp.isAnchor(hit.getBlockPos())) { finish(); return; }
+                if (stage == 4 && !blipHurtReady()) return;
+                if (click(Items.GLOWSTONE)) next(stageDelay);
+            }
+            case 2, 5 -> {
+                if (!Cpvp.isAnchor(hit.getBlockPos()) || Cpvp.charges(hit.getBlockPos()) <= 0) { finish(); return; }
+                int slot = cargoSlot.getValue() - 1;
+                if (mc.player.getInventory().getStack(slot).isOf(Items.GLOWSTONE)) { finish(); return; }
+                if (!swap.is(new EncryptedString(new char[]{0x2276, 0xa8a4, 0xd134, 0xbc0c}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69}))) Cpvp.select(slot, new EncryptedString(new char[]{0x2279, 0xa8bc, 0xd129, 0xbc19}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69}));
+                if (Cpvp.useCrosshair()) {
+                    if (stage == 5) { if (glowCap.getValue()) { stage = 6; readyAt = Cpvp.next(capDelay); } else finish(); }
+                    else next(stageDelay);
+                }
+            }
+            case 6 -> { click(Items.GLOWSTONE); finish(); }
+            default -> finish();
+        }
+    }
+
+    private boolean blipHurtReady() {
+        if (!blipHurt.getValue()) return true;
+        PlayerEntity enemy = Cpvp.nearestEnemy(blipHurtRange.getValue());
+        if (enemy == null || enemy.hurtTime <= 0) return true;
+        if (waitStart == 0) waitStart = System.currentTimeMillis();
+        return System.currentTimeMillis() - waitStart > maxWait.getValue();
+    }
+
+    private boolean click(Item item) {
+        int slot = Cpvp.hotbar(item);
+        if (slot < 0) { finish(); return false; }
+        if (swap.is(new EncryptedString(new char[]{0x2276, 0xa8a4, 0xd134, 0xbc0c}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69})) && Cpvp.selected() != slot) { finish(); return false; }
+        Cpvp.select(slot, new EncryptedString(new char[]{0x2279, 0xa8bc, 0xd129, 0xbc19}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69}));
+        return Cpvp.useCrosshair();
+    }
+
+    private void next(RangeSetting d) {
+        stage++;
+        readyAt = Cpvp.next(d);
+    }
+
+    private void finish() {
+        if (swapBack.getValue() && home >= 0 && mc.player != null) mc.player.getInventory().setSelectedSlot(home);
+        stage = -1;
+        home = -1;
+        waitStart = 0;
+    }
+}

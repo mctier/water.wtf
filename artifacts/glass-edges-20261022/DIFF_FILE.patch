@@ -1,0 +1,28 @@
+--- baseline/src/main/resources/assets/utilitymod/shaders/glass/lg_tinted.frag
++++ modified/src/main/resources/assets/utilitymod/shaders/glass/lg_tinted.frag
+@@ -50,7 +50,7 @@
+     if (q.x > 0.0 && q.y > 0.0) normal = normalize(max(q, vec2(0.0))) * sign(local);
+     if (uCardMaterial > 0.5) {
+         vec2 baseUV = (vMidPointNDC + vLocalOffsetNDC) * 0.5 + 0.5;
+-        float lensPixels = 4.0 * clamp(uRefractionPower / 0.32, 0.0, 1.0);
++        float lensPixels = 6.0 * clamp(uRefractionPower / 0.32, 0.0, 1.0);
+         sampleUV = clamp(baseUV - normal * pixelUV * lensPixels * rim * rim, vec2(0.001), vec2(0.999));
+     }
+ 
+@@ -77,11 +77,14 @@
+         pigment = mix(pigment, vec3(0.035, 0.012, 0.045), darkRight);
+         // Preserve backdrop details without washing the pigment into gray.
+         vec3 scene = color.rgb / (vec3(1.0) + color.rgb * 1.25);
+-        float pigmentWeight = mix(0.64, 0.78, darkRight);
++        // Clearer bevel reveals the refracted scene; the interior pigment is unchanged.
++        float pigmentWeight = mix(0.64, 0.78, darkRight) - rim * 0.20;
+         color.rgb = mix(scene * vec3(0.80, 0.48, 0.76), pigment, pigmentWeight);
+         float lip = exp(-max(-sd, 0.0) / 1.25);
+         float directional = 0.45 + 0.55 * max(0.0, dot(normal, normalize(vec2(-0.6, -0.8))));
+-        color.rgb += vec3(0.85, 0.57, 0.83) * lip * directional * 0.20;
++        // Soft inner caustic stays inside the same 18px lens band.
++        float innerGlow = exp(-max(-sd, 0.0) / 6.0) * rim;
++        color.rgb += vec3(0.85, 0.57, 0.83) * directional * (lip * 0.20 + innerGlow * 0.09);
+         FragColor = vec4(color.rgb, pow(edge, 1.35) * uAlpha);
+         return;
+     }

@@ -1,0 +1,24 @@
+--- a/HudOverlay.java
++++ b/HudOverlay.java
+@@ -356,13 +356,16 @@
+                     || mc.options.attackKey.isPressed());
+             boolean rmb = mc.currentScreen == null && (GLFW.glfwGetMouseButton(win, GLFW.GLFW_MOUSE_BUTTON_RIGHT) == GLFW.GLFW_PRESS
+                     || mc.options.useKey.isPressed());
+-            // module clicks that land between frames still count
++            // Count every queued click, even on a binding-state transition. Only suppress
++            // the extra polled edge when this frame already contains a click for that button.
++            boolean simulatedLeft = false, simulatedRight = false;
+             for (int[] c; (c = com.utilitymod.echo.handlers.InputHandler.SIMULATED_CLICKS.poll()) != null; ) {
+                 long now = System.currentTimeMillis();
+-                if (c[0] == 0 && lmb == leftWas) leftClicks.addLast(now);
+-                if (c[0] == 1 && rmb == rightWas) rightClicks.addLast(now);
+-            }
+-            int l = cps(leftClicks, lmb, leftWas), r = cps(rightClicks, rmb, rightWas);
++                if (c[0] == 0) { leftClicks.addLast(now); simulatedLeft = true; }
++                if (c[0] == 1) { rightClicks.addLast(now); simulatedRight = true; }
++            }
++            int l = cps(leftClicks, lmb, leftWas || simulatedLeft);
++            int r = cps(rightClicks, rmb, rightWas || simulatedRight);
+             leftWas = lmb;
+             rightWas = rmb;
+             key(ctx, LT.L56, LT.L57, 21, 0, 20, 18, mc.options.forwardKey.isPressed());

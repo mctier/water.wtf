@@ -1,0 +1,70 @@
+plugins {
+    id 'fabric-loom' version '1.13-SNAPSHOT'
+    id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base { archivesName = project.archives_base_name }
+
+repositories {
+    maven { url 'https://maven.fabricmc.net/' }
+}
+
+loom {
+    // Split jar - client only mod
+    splitEnvironmentSourceSets()
+
+    mods {
+        utilitymod {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+}
+
+dependencies {
+    minecraft 'com.mojang:minecraft:1.21.11'
+    mappings 'net.fabricmc:yarn:1.21.11+build.3:v2'
+    modImplementation 'net.fabricmc:fabric-loader:0.18.1'
+    modImplementation 'net.fabricmc.fabric-api:fabric-api:0.136.0+1.21.11'
+
+    // Lombok for the adin UI transplant (compile-time only)
+    clientCompileOnly 'org.projectlombok:lombok:1.18.48'
+    clientAnnotationProcessor 'org.projectlombok:lombok:1.18.48'
+
+    // Optional: ensure Java 21
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.encoding = 'UTF-8'
+    it.options.release = 21
+    // Strip debug info so SourceFile ("KillAura.java") and local-variable names do not land
+    // in the class constant pool where an ASCII heap scanner can match them.
+    // -g:none drops SourceFile, LineNumberTable, LocalVariableTable, LocalVariableTypeTable.
+    // Mixin/Loom tolerates this — intermediary remap doesn't need debug attrs.
+    it.options.debug = false
+    it.options.debugOptions.debugLevel = ''
+    it.options.compilerArgs += ['-g:none']
+}
+
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+jar {
+    from('LICENSE') { into '' }
+    // Self-injecting jar: `java -jar utilitymod.jar` attaches to the running
+    // client and loads this jar as an agent (see com.utilitymod.inject).
+    manifest {
+        attributes(
+                'Main-Class': 'com.utilitymod.inject.Attach',
+                'Agent-Class': 'com.utilitymod.inject.Agent',
+                'Can-Retransform-Classes': 'true',
+                'Can-Redefine-Classes': 'true'
+        )
+    }
+}

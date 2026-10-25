@@ -1,0 +1,488 @@
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>UtilityMod</title>
+<style>
+  /* Layout: full-bleed dark ground, one ice accent, heavy tight display type;
+     framed "game window" mockups drawn in CSS stand in for real captures. */
+  :root{
+    --ground:#06080b; --panel:#0e1218; --raised:#141a22;
+    --line:#ffffff14; --line-strong:#ffffff24;
+    --ink:#e9eef5; --dim:#93a0b2; --faint:#6d7a8c;
+    --ice:#9bd3fa; --ice-deep:#5aa7e0;
+    --good:#7fd9a8; --warn:#ffc55c; --bad:#f08a8a;
+    --purple:#b79cf0;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--ground); color:var(--ink);
+    font-family:"Inter","Segoe UI",system-ui,sans-serif;
+    line-height:1.55; -webkit-font-smoothing:antialiased;
+    overflow-x:clip;
+  }
+  ::selection{background:#9bd3fa47;color:#fff}
+  a{color:inherit;text-decoration:none}
+  h1,h2,h3{text-wrap:balance;margin:0}
+  :focus-visible{outline:2px solid var(--ice);outline-offset:3px;border-radius:6px}
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+  /* inline icon set */
+  .ic{display:inline-block;vertical-align:-.14em;width:1em;height:1em;flex:none;
+    stroke:currentColor;stroke-width:1.9;fill:none;stroke-linecap:round;stroke-linejoin:round}
+  .ic-fill{fill:currentColor;stroke:none}
+
+  .display{font-weight:800;letter-spacing:-.04em;line-height:.98}
+  .mono{font-family:"JetBrains Mono",ui-monospace,"Consolas",monospace}
+  .nums{font-variant-numeric:tabular-nums}
+
+  .wrap{max-width:1120px;margin:0 auto;
+    padding-left:max(20px,env(safe-area-inset-left,0px));
+    padding-right:max(20px,env(safe-area-inset-right,0px));}
+
+  /* ---- header ---- */
+  header{position:fixed;inset-inline:0;top:env(safe-area-inset-top,0px);z-index:50;display:flex;justify-content:center;padding:14px}
+  nav{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    width:100%;max-width:1120px;height:54px;padding:0 8px 0 18px;border-radius:16px;
+    border:1px solid var(--line);background:rgba(10,13,18,.55);
+    backdrop-filter:blur(18px) saturate(1.4);transition:background .3s,border-color .3s}
+  nav.scrolled{background:rgba(10,13,18,.82);border-color:#ffffff1a}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700;letter-spacing:-.02em;font-size:17px}
+  .bolt{width:24px;height:24px;display:grid;place-items:center;border-radius:7px;
+    background:linear-gradient(145deg,var(--ice),var(--ice-deep));color:#05121d;font-size:14px}
+  .navlinks{display:flex;align-items:center;gap:2px;color:var(--dim);font-size:14.5px}
+  .navlinks a{padding:8px 11px;border-radius:9px;transition:color .15s,background .15s}
+  .navlinks a:hover{color:var(--ink);background:#ffffff0a}
+  .ghl{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 15px;margin-left:6px;
+    border-radius:10px;background:var(--ice);color:#05121d;font-weight:560;font-size:14px;transition:background .18s}
+  .ghl:hover{background:#c1e5ff}
+  @media(max-width:760px){.navlinks a:not(.ghl){display:none}}
+
+  /* ---- hero ---- */
+  .hero{position:relative;min-height:100svh;display:flex;align-items:flex-end;overflow:hidden;
+    background:radial-gradient(120% 80% at 70% 0%,#121c28 0%,#0a0f16 45%,#06080b 100%)}
+  .hero canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  .hero .glowline{position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(180deg,transparent 0%,transparent 55%,#06080be6 100%)}
+  .hero .wrap{position:relative;z-index:2;padding-top:140px;padding-bottom:84px;width:100%}
+  .kicker{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--dim);
+    border:1px solid var(--line);background:#ffffff08;border-radius:30px;padding:5px 13px 5px 11px;margin-bottom:26px}
+  .kicker .ic{color:var(--ice);font-size:14px}
+  .kicker b{color:var(--ice);font-weight:600}
+  .kicker .sep{color:var(--faint)}
+  h1.hero-h{font-size:clamp(3.2rem,9vw,5.8rem);color:#fff}
+  h1.hero-h .fade{color:var(--dim)}
+  .lead{margin-top:22px;max-width:36rem;font-size:clamp(1rem,1.6vw,1.22rem);color:#ffffffcc;line-height:1.5}
+  .cta-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:34px}
+  .btn{display:inline-flex;align-items:center;gap:9px;height:48px;padding:0 22px;border-radius:12px;
+    font-size:15px;font-weight:560;cursor:pointer;transition:transform .12s,background .18s,border-color .18s;white-space:nowrap}
+  .btn:active{transform:scale(.97)}
+  .btn .ic{font-size:17px}
+  .btn-primary{background:var(--ice);color:#05121d}
+  .btn-primary:hover{background:#c1e5ff}
+  .btn-quiet{border:1px solid var(--line);background:#ffffff0d;color:var(--ink);backdrop-filter:blur(8px)}
+  .btn-quiet:hover{border-color:var(--line-strong);background:#ffffff1a}
+  .mod-rail{position:absolute;right:24px;top:108px;z-index:2;display:none;flex-direction:column;align-items:flex-end;gap:6px;margin:0;padding:0;list-style:none}
+  @media(min-width:900px){.mod-rail{display:flex}}
+  .mod-chip{display:flex;align-items:center;gap:7px;background:rgba(23,26,33,.82);border:1px solid var(--line);backdrop-filter:blur(6px);
+    padding:5px 13px;border-radius:8px;font-size:13.5px;font-weight:500;color:var(--ice)}
+  .mod-chip .ic{font-size:14px;opacity:.9}
+
+  /* ---- sections ---- */
+  section{scroll-margin-top:90px}
+  .sec{padding-top:112px}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ice);font-weight:600}
+  .eyebrow .ic{font-size:15px}
+  h2.sec-h{font-size:clamp(2rem,4.4vw,3.1rem);letter-spacing:-.035em;font-weight:800;margin-top:14px;max-width:20ch}
+  h2.sec-h .fade{color:var(--dim)}
+  .sec-sub{margin-top:18px;max-width:58ch;font-size:17px;color:var(--dim);line-height:1.6}
+
+  /* stat band */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-top:40px;
+    border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--line)}
+  .stat{background:var(--panel);padding:20px}
+  .stat .ico{color:var(--ice);font-size:20px;margin-bottom:12px;display:block}
+  .stat .n{font-size:28px;font-weight:800;letter-spacing:-.03em;color:#fff}
+  .stat .n .u{color:var(--ice);font-size:17px;margin-left:2px}
+  .stat .l{margin-top:4px;font-size:13.5px;color:var(--dim)}
+  @media(max-width:720px){.stats{grid-template-columns:repeat(2,1fr)}}
+
+  /* frame / mockup */
+  .frame{position:relative;border:1px solid var(--line);border-radius:18px;overflow:hidden;
+    background:linear-gradient(150deg,#121a23 0%,#0b1016 55%,#0d151e 100%);
+    box-shadow:0 50px 90px -34px #000000d9,inset 0 1px #ffffff0a}
+  .frame .glow{position:absolute;inset:-20% -10% auto -10%;height:60%;
+    background:radial-gradient(60% 100% at 50% 0,#9bd3fa22,transparent 70%);pointer-events:none}
+  .winbar{display:flex;align-items:center;gap:8px;padding:11px 16px;border-bottom:1px solid var(--line);position:relative;z-index:2}
+  .dot{width:10px;height:10px;border-radius:50%}
+  .winbar .t{margin-left:8px;font-size:12.5px;color:var(--faint)}
+
+  /* verso mockup */
+  .gui{display:flex;gap:12px;padding:20px;flex-wrap:wrap;position:relative;z-index:2}
+  .panel-col{flex:1;min-width:150px}
+  .gpanel{background:rgba(9,13,19,.72);border:1px solid var(--line);border-radius:13px;overflow:hidden;backdrop-filter:blur(8px)}
+  .gphead{padding:9px 13px;font-size:13px;font-weight:600;letter-spacing:-.01em;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:8px}
+  .gphead .ico{color:var(--ice);font-size:15px}
+  .gphead .ar{margin-left:auto;color:var(--faint);font-size:14px}
+  .mod{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 13px;font-size:12.5px;color:var(--dim);
+    border-bottom:1px solid #ffffff08}
+  .mod:last-child{border-bottom:0}
+  .mod.on{color:var(--ink)}
+  .sw{width:26px;height:15px;border-radius:20px;background:#ffffff12;position:relative;flex:none}
+  .sw::after{content:"";position:absolute;top:2px;left:2px;width:11px;height:11px;border-radius:50%;background:var(--faint);transition:.2s}
+  .mod.on .sw{background:#9bd3fa33}
+  .mod.on .sw::after{left:13px;background:var(--ice)}
+
+  /* feature list cards */
+  .figrid{display:grid;gap:16px;margin-top:40px}
+  figure{margin:0}
+  figcaption{margin-top:20px;display:grid;gap:6px;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:0 40px}
+  figcaption h3{font-size:19px;font-weight:650;letter-spacing:-.02em}
+  figcaption p{margin:0;max-width:52ch;font-size:16px;color:var(--dim);line-height:1.6}
+  @media(max-width:720px){figcaption{grid-template-columns:1fr;gap:6px}}
+
+  /* category tabs */
+  .cats{margin-top:40px;border:1px solid var(--line);border-radius:18px;background:var(--panel);overflow:hidden}
+  .cattabs{display:flex;flex-wrap:wrap;gap:4px;padding:10px;border-bottom:1px solid var(--line);background:#0a0e14}
+  .cattab{padding:8px 14px;border-radius:10px;font-size:13.5px;font-weight:550;color:var(--dim);cursor:pointer;
+    border:1px solid transparent;transition:.15s;display:inline-flex;align-items:center;gap:8px;background:none}
+  .cattab .ic{font-size:15px}
+  .cattab:hover{color:var(--ink)}
+  .cattab[aria-selected="true"]{background:#9bd3fa14;border-color:#9bd3fa3a;color:var(--ice)}
+  .catbody{padding:22px 24px;min-height:150px}
+  .catbody h3{font-size:17px;font-weight:650;letter-spacing:-.01em}
+  .catbody .desc{margin-top:4px;color:var(--dim);font-size:14.5px;max-width:60ch}
+  .pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+  .pill{font-size:13px;padding:5px 12px;border-radius:9px;background:#ffffff08;border:1px solid var(--line);color:var(--dim)}
+  .pill b{color:var(--ink);font-weight:600}
+  .pill.hot{border-color:#9bd3fa3a;background:#9bd3fa12;color:var(--ice)}
+
+  /* steps */
+  .steps{margin-top:40px;border-top:1px solid var(--line)}
+  .step{display:grid;grid-template-columns:2.6rem 1fr;gap:4px 8px;padding:22px 0;border-bottom:1px solid var(--line)}
+  .step .k{font-size:15px;color:var(--ice);padding-top:2px}
+  .step h3{font-size:18px;font-weight:650;letter-spacing:-.02em}
+  .step p{margin:4px 0 0;color:var(--dim);font-size:15.5px;line-height:1.5}
+  .step code,.warnbox code,.sec-sub code,.faq code{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13px;color:var(--ice);
+    background:#9bd3fa12;border:1px solid #9bd3fa24;border-radius:6px;padding:1px 6px}
+
+  /* code block */
+  .code{margin-top:22px;border:1px solid var(--line);border-radius:14px;background:#090d13;overflow:hidden}
+  .code .bar{padding:9px 15px;border-bottom:1px solid var(--line);font-size:12px;color:var(--faint);display:flex;gap:8px;align-items:center}
+  .code pre{margin:0;padding:16px 18px;overflow-x:auto;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13px;line-height:1.75;color:#cdd7e4}
+  .code .c{color:var(--faint)}
+  .code .k2{color:var(--ice)}
+  .code .s{color:var(--good)}
+  .warnbox{margin-top:16px;display:flex;gap:12px;border:1px solid #ffc55c33;background:#ffc55c0d;border-radius:12px;padding:14px 16px}
+  .warnbox .i{color:var(--warn);flex:none;font-size:20px}
+  .warnbox p{margin:0;font-size:14px;color:var(--dim);line-height:1.5}
+  .warnbox b{color:var(--ink);font-weight:600}
+
+  /* faq */
+  .faq{margin-top:40px;border-top:1px solid var(--line)}
+  details{border-bottom:1px solid var(--line)}
+  summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:20px;
+    padding:20px 0;font-size:18px;font-weight:550;letter-spacing:-.015em}
+  summary::-webkit-details-marker{display:none}
+  summary .chev{color:var(--dim);transition:transform .25s;flex:none;font-size:20px}
+  details[open] summary .chev{transform:rotate(180deg)}
+  details p{margin:0 0 22px;max-width:62ch;color:var(--dim);font-size:16px;line-height:1.6}
+
+  /* credits */
+  .cred{margin-top:40px;display:grid;grid-template-columns:repeat(2,1fr);gap:1px;border:1px solid var(--line);
+    border-radius:18px;overflow:hidden;background:var(--line)}
+  .crow{background:var(--panel);padding:18px 20px;display:flex;gap:14px}
+  .crow .ci{color:var(--ice);font-size:18px;margin-top:2px}
+  .crow .w{font-weight:650;font-size:15px}
+  .crow .d{margin-top:3px;color:var(--dim);font-size:14px}
+  @media(max-width:720px){.cred{grid-template-columns:1fr}}
+
+  /* footer */
+  footer{margin-top:120px;border-top:1px solid var(--line)}
+  .foot{padding:44px 0 40px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:24px}
+  .foot .big{font-size:clamp(2rem,5vw,3rem);font-weight:800;letter-spacing:-.04em;color:#fff}
+  .foot .big .i{color:var(--ice)}
+  .footlinks{display:flex;flex-wrap:wrap;gap:8px 26px;color:var(--dim);font-size:15px;padding-bottom:6px}
+  .footlinks a{display:inline-flex;align-items:center;gap:6px}
+  .footlinks a:hover{color:var(--ink)}
+  .legal{padding-bottom:40px;font-size:13.5px;color:var(--faint);max-width:72ch;display:flex;align-items:center;gap:8px}
+  .legal .ic{color:var(--ice);font-size:15px;flex:none}
+  .legal a{color:var(--dim);text-decoration:underline;text-underline-offset:3px}
+  .reveal{opacity:0;transform:translateY(20px);transition:opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1)}
+  .reveal.in{opacity:1;transform:none}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<!-- icon sprite: define once, reference with <svg class="ic"><use href="#i-xxx"/></svg> -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></symbol>
+  <symbol id="i-crosshair" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></symbol>
+  <symbol id="i-wind" viewBox="0 0 24 24"><path d="M12.8 19.6A2 2 0 1 0 14 16H2"/><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2"/><path d="M9.8 4.4A2 2 0 1 1 11 8H2"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></symbol>
+  <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12.5l9.17 4.16a2 2 0 0 0 1.66 0L22 12.5"/><path d="M2 17l9.17 4.16a2 2 0 0 0 1.66 0L22 17"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2z"/><line x1="12" y1="10" x2="12" y2="16"/><line x1="9" y1="13" x2="15" y2="13"/></symbol>
+  <symbol id="i-syringe" viewBox="0 0 24 24"><path d="m18 2 4 4"/><path d="m17 7 3-3"/><path d="M19 9 8.7 19.3a1 1 0 0 1-.6.3l-4 .9 .9-4a1 1 0 0 1 .3-.6L15 5.6"/><path d="m9 11 4 4"/><path d="m5 19-3 3"/><path d="m14 4 6 6"/></symbol>
+  <symbol id="i-coffee" viewBox="0 0 24 24"><path d="M10 2v2"/><path d="M14 2v2"/><path d="M6 8h12a1 1 0 0 1 1 1v3a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1z"/><path d="M19 9h1a2 2 0 0 1 0 4h-1"/><path d="M6 20h12"/></symbol>
+  <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M9 2v2M15 2v2M9 20v2M15 20v2M2 9h2M2 15h2M20 9h2M20 15h2"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.9 5.3L19 10l-5.1 1.7L12 17l-1.9-5.3L5 10l5.1-1.7z"/></symbol>
+  <symbol id="i-boxes" viewBox="0 0 24 24"><path d="M2.97 12.92A2 2 0 0 0 2 14.63v3.24a2 2 0 0 0 .97 1.71l3 1.8a2 2 0 0 0 2.06 0L12 19v-5.5l-5-3z"/><path d="m7 16.5-4.74-2.85"/><path d="m7 16.5 5-3"/><path d="M7 16.5v5.17"/><path d="M12 13.5V19l3.97 2.38a2 2 0 0 0 2.06 0l3-1.8a2 2 0 0 0 .97-1.71v-3.24a2 2 0 0 0-.97-1.71L17 10l-5 3.5z"/><path d="m17 16.5-5-3"/><path d="m17 16.5 4.74-2.85"/><path d="M17 16.5v5.17"/><path d="M7.97 4.42A2 2 0 0 0 7 6.13v4.37l5 3 5-3V6.13a2 2 0 0 0-.97-1.71l-3-1.8a2 2 0 0 0-2.06 0z"/><path d="M12 8 7.26 5.15"/><path d="m12 8 4.74-2.85"/><path d="M12 13.5V8"/></symbol>
+  <symbol id="i-rocket" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91 0z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></symbol>
+  <symbol id="i-terminal" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+  <symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-arrow-r" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></symbol>
+  <symbol id="i-arrow-ur" viewBox="0 0 24 24"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></symbol>
+  <symbol id="i-github" viewBox="0 0 24 24"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></symbol>
+</defs></svg>
+
+<header><nav id="nav" class="wrap">
+  <a class="brand" href="#top"><span class="bolt"><svg class="ic ic-fill" style="width:14px;height:14px"><use href="#i-zap"/></svg></span><span>Utility<span style="color:var(--ice)">Mod</span></span></a>
+  <div class="navlinks">
+    <a href="#features">Features</a>
+    <a href="#modules">Modules</a>
+    <a href="#inject">Injecting</a>
+    <a href="#faq">FAQ</a>
+    <a class="ghl" href="https://github.com/fakemoon" target="_blank" rel="noopener"><svg class="ic"><use href="#i-github"/></svg> GitHub</a>
+  </div>
+</nav></header>
+
+<main id="top">
+  <!-- HERO -->
+  <section class="hero">
+    <canvas id="stars" aria-hidden="true"></canvas>
+    <div class="glowline"></div>
+    <ul class="mod-rail" aria-hidden="true" id="rail"></ul>
+    <div class="wrap">
+      <span class="kicker"><svg class="ic"><use href="#i-zap"/></svg> <b>Late-injected</b> <span class="sep">·</span> Minecraft 1.21.11 <span class="sep">·</span> pure ASM, no Mixin</span>
+      <h1 class="hero-h display" id="heroH">Attach,<br>don't install.</h1>
+      <p class="lead">A Fabric utility client that hooks a <b style="color:#fff;font-weight:600">running</b> 1.21.11 game through JVM Attach and ASM bytecode patching. Nothing in your mods folder. Launch, attach, press right shift.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#inject">How to inject <svg class="ic"><use href="#i-arrow-r"/></svg></a>
+        <a class="btn btn-quiet" href="#features">See what it does</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section class="sec"><div class="wrap reveal">
+    <span class="eyebrow"><svg class="ic"><use href="#i-sparkle"/></svg> What it is</span>
+    <h2 class="sec-h">Not a mod. <span class="fade">A client that lives inside the game you already opened.</span></h2>
+    <p class="sec-sub">No second launcher, no <code class="mono">fabric.mod.json</code> entry, nothing in <code class="mono">mods/</code>. A loader thread runs <b style="color:var(--ink)">Attach</b>, the agent rewrites bytecode at runtime, and the whole client appears in the process already in front of you.</p>
+    <div class="stats">
+      <div class="stat"><svg class="ic ico"><use href="#i-boxes"/></svg><div class="n nums">96<span class="u">+</span></div><div class="l">modules</div></div>
+      <div class="stat"><svg class="ic ico"><use href="#i-folder"/></svg><div class="n nums">0</div><div class="l">files in mods/</div></div>
+      <div class="stat"><svg class="ic ico"><use href="#i-layers"/></svg><div class="n nums">Pure<span class="u"> ASM</span></div><div class="l">no Mixin</div></div>
+      <div class="stat"><svg class="ic ico"><use href="#i-coffee"/></svg><div class="n nums">JDK 21</div><div class="l">attach runtime</div></div>
+    </div>
+  </div></section>
+
+  <!-- FEATURES / GUI MOCKUP -->
+  <section id="features" class="sec"><div class="wrap">
+    <div class="reveal">
+      <span class="eyebrow"><svg class="ic"><use href="#i-layers"/></svg> The interface</span>
+      <h2 class="sec-h">The menu, on right shift. <span class="fade">Every module with its real settings.</span></h2>
+      <p class="sec-sub">Left click toggles a module, right click opens its settings, drag a panel by its title. A liquid-glass Verso over a HUD editor, waypoints, profiles and shareable config codes.</p>
+    </div>
+
+    <div class="figrid" style="margin-top:36px">
+      <figure class="reveal">
+        <div class="frame">
+          <div class="glow"></div>
+          <div class="winbar">
+            <span class="dot" style="background:#f08a8a"></span><span class="dot" style="background:#ffc55c"></span><span class="dot" style="background:#7fd9a8"></span>
+            <span class="t mono">UtilityMod — Verso</span>
+          </div>
+          <div class="gui">
+            <div class="panel-col"><div class="gpanel">
+              <div class="gphead"><svg class="ic ico"><use href="#i-crosshair"/></svg>Combat<svg class="ic ar"><use href="#i-chev-r"/></svg></div>
+              <div class="mod on"><span>Aura Guide</span><span class="sw"></span></div>
+              <div class="mod on"><span>Shard Hack</span><span class="sw"></span></div>
+              <div class="mod"><span>Breach Kit</span><span class="sw"></span></div>
+              <div class="mod on"><span>Hitbox</span><span class="sw"></span></div>
+              <div class="mod"><span>Backtrack</span><span class="sw"></span></div>
+            </div></div>
+            <div class="panel-col"><div class="gpanel">
+              <div class="gphead"><svg class="ic ico"><use href="#i-wind"/></svg>Movement<svg class="ic ar"><use href="#i-chev-r"/></svg></div>
+              <div class="mod on"><span>Combo Helper</span><span class="sw"></span></div>
+              <div class="mod on"><span>Sprint</span><span class="sw"></span></div>
+              <div class="mod"><span>Freecam</span><span class="sw"></span></div>
+              <div class="mod on"><span>No Slow</span><span class="sw"></span></div>
+              <div class="mod"><span>Fast Stairs</span><span class="sw"></span></div>
+            </div></div>
+            <div class="panel-col"><div class="gpanel">
+              <div class="gphead"><svg class="ic ico"><use href="#i-compass"/></svg>Finders<svg class="ic ar"><use href="#i-chev-r"/></svg></div>
+              <div class="mod on"><span>Stronghold</span><span class="sw"></span></div>
+              <div class="mod"><span>Ancient City</span><span class="sw"></span></div>
+              <div class="mod on"><span>Base Finder</span><span class="sw"></span></div>
+              <div class="mod"><span>Village</span><span class="sw"></span></div>
+              <div class="mod on"><span>Portal</span><span class="sw"></span></div>
+            </div></div>
+            <div class="panel-col"><div class="gpanel">
+              <div class="gphead"><svg class="ic ico"><use href="#i-eye"/></svg>Visual<svg class="ic ar"><use href="#i-chev-r"/></svg></div>
+              <div class="mod on"><span>Block ESP</span><span class="sw"></span></div>
+              <div class="mod on"><span>Target HUD</span><span class="sw"></span></div>
+              <div class="mod"><span>Sky Art</span><span class="sw"></span></div>
+              <div class="mod on"><span>Fullbright</span><span class="sw"></span></div>
+              <div class="mod"><span>Trails</span><span class="sw"></span></div>
+            </div></div>
+          </div>
+        </div>
+        <figcaption>
+          <h3>A panel per category.</h3>
+          <p>Combat, Movement, Visual, Base Finding, Utility and the Donut set — each a draggable panel with the real defaults. A compact in-game sidebar runs the same modules and binds.</p>
+        </figcaption>
+      </figure>
+    </div>
+  </div></section>
+
+  <!-- MODULES / CATEGORY EXPLORER -->
+  <section id="modules" class="sec"><div class="wrap reveal">
+    <span class="eyebrow"><svg class="ic"><use href="#i-boxes"/></svg> The catalogue</span>
+    <h2 class="sec-h">96 modules, ported one by one.</h2>
+    <p class="sec-sub">Pick a category. Nothing here is filler — every entry has its own settings page in the GUI.</p>
+    <div class="cats">
+      <div class="cattabs" role="tablist" aria-label="Module categories">
+        <button class="cattab" role="tab" aria-selected="true" data-cat="combat"><svg class="ic"><use href="#i-crosshair"/></svg>Combat</button>
+        <button class="cattab" role="tab" aria-selected="false" data-cat="movement"><svg class="ic"><use href="#i-wind"/></svg>Movement</button>
+        <button class="cattab" role="tab" aria-selected="false" data-cat="visual"><svg class="ic"><use href="#i-eye"/></svg>Visual</button>
+        <button class="cattab" role="tab" aria-selected="false" data-cat="finder"><svg class="ic"><use href="#i-compass"/></svg>Base Finding</button>
+        <button class="cattab" role="tab" aria-selected="false" data-cat="utility"><svg class="ic"><use href="#i-wrench"/></svg>Utility</button>
+      </div>
+      <div class="catbody" id="catbody"></div>
+    </div>
+  </div></section>
+
+  <!-- INJECT / STEPS -->
+  <section id="inject" class="sec"><div class="wrap reveal">
+    <span class="eyebrow"><svg class="ic"><use href="#i-syringe"/></svg> Getting in</span>
+    <h2 class="sec-h">Launch the game, then attach the jar.</h2>
+    <p class="sec-sub">The injector needs <b style="color:var(--ink)">JDK 21</b>. Build the client, start Minecraft 1.21.11, and attach — the client appears in the running process.</p>
+
+    <div class="steps">
+      <div class="step"><span class="k nums">1</span><div><h3>Build it</h3><p>Compile against JDK 21; the jar lands in <code>build/libs/</code>. For repeated runs use a fresh <code>-Parchives_base_name</code> — an injected jar is locked by the game.</p></div></div>
+      <div class="step"><span class="k nums">2</span><div><h3>Launch Minecraft 1.21.11</h3><p>Start the game on Java 21 and get to a world or server. The client attaches to whatever process is already running.</p></div></div>
+      <div class="step"><span class="k nums">3</span><div><h3>Attach</h3><p>Run <code>inject.bat</code> beside the jar — it finds or installs JDK 21, waits for the game and attaches for you. Double-click the <code>.bat</code>, never the <code>.jar</code>.</p></div></div>
+      <div class="step"><span class="k nums">4</span><div><h3>Press right shift</h3><p>The Verso opens. Toggle modules, drag panels, bind keys. Default open bind is <code>Right Shift</code>.</p></div></div>
+    </div>
+
+    <div class="code">
+      <div class="bar"><svg class="ic" style="color:var(--ice)"><use href="#i-terminal"/></svg><span class="mono">terminal</span></div>
+<pre><span class="c"># build (JDK 21) — output → build/libs/</span>
+./gradlew build <span class="k2">-Parchives_base_name</span>=<span class="s">utilitymod-dev</span>
+
+<span class="c"># attach to the running 1.21.11 client</span>
+<span class="s">"C:\Program Files\Java\jdk-21.0.12\bin\java.exe"</span> <span class="k2">-jar</span> utilitymod-dev.jar</pre>
+    </div>
+
+    <div class="warnbox">
+      <svg class="ic i"><use href="#i-warn"/></svg>
+      <p><b>A Java error popup from double-clicking the jar is a file-association problem on that PC</b>, not the jar itself. Always launch through <code class="mono" style="color:var(--ice)">inject.bat</code>. Windows only.</p>
+    </div>
+  </div></section>
+
+  <!-- CREDITS -->
+  <section class="sec"><div class="wrap reveal">
+    <span class="eyebrow"><svg class="ic"><use href="#i-sparkle"/></svg> Built on</span>
+    <h2 class="sec-h">Credits.</h2>
+    <div class="cred">
+      <div class="crow"><svg class="ic ci"><use href="#i-cpu"/></svg><div><div class="w">echo</div><div class="d">Event bus, rotation and combat utilities the client is built on.</div></div></div>
+      <div class="crow"><svg class="ic ci"><use href="#i-sparkle"/></svg><div><div class="w">Jacquesqwq · Kalanaki</div><div class="d">Liquid-glass shaders (MIT — see shaders/glass/LICENSE).</div></div></div>
+      <div class="crow"><svg class="ic ci"><use href="#i-eye"/></svg><div><div class="w">Pa-dej / SoupAPI</div><div class="d">Visual asset inspiration — capes, markers, particles, sounds.</div></div></div>
+      <div class="crow"><svg class="ic ci"><use href="#i-compass"/></svg><div><div class="w">Anubis</div><div class="d">Base-finding / DonutSMP module set (Donut tab).</div></div></div>
+    </div>
+  </div></section>
+
+  <!-- FAQ -->
+  <section id="faq" class="sec"><div class="wrap reveal">
+    <span class="eyebrow"><svg class="ic"><use href="#i-chev-d"/></svg> Before you ask</span>
+    <h2 class="sec-h">Questions.</h2>
+    <div class="faq">
+      <details open><summary>Why inject instead of a normal mod?<svg class="ic chev"><use href="#i-chev-d"/></svg></summary><p>No mod loader entry and nothing in your mods folder. A loader thread runs <code class="mono">com.utilitymod.inject.Attach</code> and the agent rewrites bytecode at runtime, so the client appears in the game that's already open.</p></details>
+      <details><summary>Do I need Mixin or a special launcher?<svg class="ic chev"><use href="#i-chev-d"/></svg></summary><p>No. Injection is pure ASM through JVM Attach — <code class="mono">Patcher</code>, <code class="mono">Patches</code> and <code class="mono">Hooks</code> with HEAD, RETURN, REDIRECT and FIELD_STORE kinds. Any vanilla or Fabric launcher works.</p></details>
+      <details><summary>Which version does it run on?<svg class="ic chev"><use href="#i-chev-d"/></svg></summary><p>Minecraft 1.21.11 on Java 21, mapped with Yarn 1.21.11+b3. Windows only for the bundled <code class="mono">inject.bat</code>.</p></details>
+      <details><summary>Why does double-clicking the jar throw a Java error?<svg class="ic chev"><use href="#i-chev-d"/></svg></summary><p>That's a file-association problem on that PC, not the jar. Launch through <code class="mono">inject.bat</code>, which finds or installs JDK 21 and attaches for you.</p></details>
+      <details><summary>What's the license?<svg class="ic chev"><use href="#i-chev-d"/></svg></summary><p>GPL-3.0. Use, modify and redistribute it, including commercially. Keep the §7(b) attribution — "Contains code from UtilityMod by fakemoon" — and this notice. Third-party assets keep their own licenses.</p></details>
+    </div>
+  </div></section>
+</main>
+
+<footer><div class="wrap">
+  <div class="foot">
+    <a class="big" href="#top">Utility<span class="i">Mod</span></a>
+    <nav class="footlinks">
+      <a href="#features">Features</a>
+      <a href="#modules">Modules</a>
+      <a href="#inject">Injecting</a>
+      <a href="https://github.com/fakemoon" target="_blank" rel="noopener"><svg class="ic"><use href="#i-github"/></svg> GitHub <svg class="ic" style="font-size:13px"><use href="#i-arrow-ur"/></svg></a>
+    </nav>
+  </div>
+  <p class="legal"><svg class="ic"><use href="#i-zap"/></svg> UtilityMod is not affiliated with Mojang or Microsoft. Minecraft is a trademark of Mojang AB. Released under <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener">GPL-3.0</a> — made by fakemoon.</p>
+</div></footer>
+
+<script>
+(function(){
+  var nav=document.getElementById('nav');
+  addEventListener('scroll',function(){nav.classList.toggle('scrolled',scrollY>24)},{passive:true});
+
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{rootMargin:'0px 0px -8% 0px'});
+  document.querySelectorAll('.reveal').forEach(function(el){io.observe(el)});
+
+  // hero module rail (name + icon)
+  var rail=document.getElementById('rail');
+  var RAIL=[['Target HUD','i-eye'],['Aura Guide','i-crosshair'],['Combo Helper','i-wind'],['Auto Tool','i-wrench'],['Block ESP','i-eye'],['Pathfinder','i-compass'],['Sky Art','i-sparkle']];
+  RAIL.forEach(function(m,i){
+    var li=document.createElement('li');li.className='mod-chip';
+    li.innerHTML='<svg class="ic"><use href="#'+m[1]+'"/></svg>'+m[0];
+    li.style.opacity=0;li.style.transform='translateX(30px)';li.style.transition='opacity .5s '+(.6+i*.09)+'s,transform .5s '+(.6+i*.09)+'s';
+    rail.appendChild(li);requestAnimationFrame(function(){li.style.opacity=1;li.style.transform='none'});
+  });
+
+  // drifting stars
+  var cv=document.getElementById('stars'),cx=cv&&cv.getContext('2d');
+  if(cx && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+    var ps=[],N=70;
+    for(var i=0;i<N;i++)ps.push({x:Math.random(),y:Math.random(),d:.25+Math.random()*.75,ph:Math.random()*6.28});
+    function draw(t){
+      requestAnimationFrame(draw);
+      var dpr=Math.min(2,devicePixelRatio||1),w=cv.clientWidth,h=cv.clientHeight;
+      if(cv.width!==w*dpr){cv.width=w*dpr;cv.height=h*dpr}
+      cx.setTransform(dpr,0,0,dpr,0,0);cx.clearRect(0,0,w,h);
+      for(var k=0;k<N;k++){var p=ps[k];p.y+=.0003+p.d*.0006;if(p.y>1.03)p.y-=1.06;
+        var sx=Math.sin(t/1000*(.3+p.d*.5)+p.ph)*.012*p.d;
+        cx.globalAlpha=.1+p.d*.4;cx.beginPath();cx.arc((p.x+sx)*w,p.y*h,.7+p.d*1.6,0,6.3);cx.fillStyle='#9bd3fa';cx.fill();}
+    }
+    requestAnimationFrame(draw);
+  }
+
+  // category explorer
+  var DATA={
+    combat:{h:'Combat',d:'Aim, crystals, maces and shield play, all with silent rotation handling.',
+      pills:[['Aura Guide',1],['Shard Hack',0],['Auto Anchor',0],['Auto Mace + Swap',0],['Breach Kit',0],['SnapFire',0],['Backtrack',0],['Hitbox',0],['Totem Hit',0],['Stun Cob',1],['Spear Lunge / Reach',0],['Auto Cart',0]]},
+    movement:{h:'Movement',d:'Combo Helper carries six reset modes and an active distance keeper.',
+      pills:[['Combo Helper · W-Tap / S-Tap / Strafe / Round / Jump / Smart',1],['Distance keeper 1–3',1],['Speed',0],['Step',0],['Velocity',0],['Sprint / Keep-Sprint',0],['Snap-Tap',0],['Jump Reset',0],['No Slow',0],['No Web',0],['Fast Stairs',0],['Freecam',0],['No Fall',0]]},
+    visual:{h:'Visual',d:'ESP, HUDs and effects drawn through the injected world-to-GUI projection.',
+      pills:[['Block ESP + picker',1],['Storage ESP',0],['Player ESP',0],['Target HUD 2D/3D',0],['Sky Art / Ambience',1],['Motion Blur',0],['Trails',0],['Hit Markers / Sounds',0],['Kill Effects',0],['Custom Cape',0],['Fullbright',0],['Zoom',0],['Session Stats',0]]},
+    finder:{h:'Base Finding',d:'Its own Verso tab. Each marks finds in-world with notifications and auto-waypoints.',
+      pills:[['Stronghold Finder',1],['Ancient City Finder',0],['Base Finder · chests / tables / anvils',1],['Village Finder · needs villagers',0],['Portal Finder',0]]},
+    utility:{h:'Utility',d:'A Baritone-style pathfinder plus the quality-of-life set.',
+      pills:[['Pathfinder · #mine / #goto',1],['Auto Miner · area box',0],['Schematic Builder',0],['Auto Totem',0],['Auto Eat',0],['Auto Tool',0],['Armor Alert',0],['Visual Range',0],['Logout Spots',0],['Chat Waypoints',1],['Auto Reconnect',0],['Waypoints',0]]}
+  };
+  var body=document.getElementById('catbody');
+  function render(cat){
+    var d=DATA[cat];var html='<h3>'+d.h+'</h3><div class="desc">'+d.d+'</div><div class="pills">';
+    d.pills.forEach(function(p){html+='<span class="pill'+(p[1]?' hot':'')+'">'+(p[1]?'<b>'+p[0]+'</b>':p[0])+'</span>'});
+    html+='</div>';body.innerHTML=html;
+  }
+  document.querySelectorAll('.cattab').forEach(function(t){
+    t.addEventListener('click',function(){
+      document.querySelectorAll('.cattab').forEach(function(x){x.setAttribute('aria-selected','false')});
+      t.setAttribute('aria-selected','true');render(t.dataset.cat);
+    });
+  });
+  render('combat');
+})();
+</script>

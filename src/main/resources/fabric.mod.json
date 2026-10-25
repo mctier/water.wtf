@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "utilitymod",
+  "version": "${version}",
+  "name": "UtilityMod",
+  "description": "Single-player utility mod for 1.21.11 - vanilla packets only, tick-start actions, JVMTI/JNI compatible",
+  "authors": ["you"],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/utilitymod/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.utilitymod.UtilityMod"
+    ]
+  },
+  "mixins": [
+    "utilitymod.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.18.1",
+    "fabric-api": "*",
+    "minecraft": "1.21.11",
+    "java": ">=21"
+  }
+}

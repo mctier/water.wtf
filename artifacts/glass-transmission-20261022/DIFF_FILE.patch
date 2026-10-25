@@ -1,0 +1,46 @@
+--- baseline/lg_tinted.frag
++++ modified/lg_tinted.frag
+@@ -42,7 +42,7 @@
+     vec2 sampleUV = clamp((vMidPointNDC + vLocalOffsetNDC * refraction) * 0.5 + vec2(0.5), vec2(0.001), vec2(0.999));
+ 
+     // Cards use a bounded edge lens, not a panel-wide magnifier.
+-    float rim = 1.0 - smoothstep(0.0, 18.0, max(-sd, 0.0));
++    float rim = 1.0 - smoothstep(0.0, 28.0, max(-sd, 0.0));
+     vec2 pixelUV = vec2(1.0, -1.0) / max(uScreen, vec2(1.0));
+     vec2 local = (v_uv - 0.5) * uQuadSize;
+     vec2 q = abs(local) - half_ + min(uRadius, min(half_.x, half_.y));
+@@ -50,14 +50,14 @@
+     if (q.x > 0.0 && q.y > 0.0) normal = normalize(max(q, vec2(0.0))) * sign(local);
+     if (uCardMaterial > 0.5) {
+         vec2 baseUV = (vMidPointNDC + vLocalOffsetNDC) * 0.5 + 0.5;
+-        float lensPixels = 6.0 * clamp(uRefractionPower / 0.32, 0.0, 1.0);
++        float lensPixels = 10.0 * clamp(uRefractionPower / 0.32, 0.0, 1.0);
+         sampleUV = clamp(baseUV - normal * pixelUV * lensPixels * rim * rim, vec2(0.001), vec2(0.999));
+     }
+ 
+     // Subtle chromatic softness.
+     vec2 chromaDir = normalize(vLocalOffsetNDC + 0.00001);
+     vec2 chromaOffset = chromaDir * fresnel * uChromaStrength;
+-    if (uCardMaterial > 0.5) chromaOffset = normal * pixelUV * 0.35 * rim * clamp(uChromaStrength / 0.0008, 0.0, 1.0);
++    if (uCardMaterial > 0.5) chromaOffset = normal * pixelUV * 0.55 * rim * clamp(uChromaStrength / 0.0008, 0.0, 1.0);
+     vec4 color = vec4(
+             textureLod(uBlurTex, sampleUV + chromaOffset, uBlurLod).r,
+             textureLod(uBlurTex, sampleUV, uBlurLod).g,
+@@ -76,13 +76,13 @@
+         float darkRight = smoothstep(0.57, 1.0, v_uv.x) * 0.78;
+         pigment = mix(pigment, vec3(0.035, 0.012, 0.045), darkRight);
+         // Preserve backdrop details without washing the pigment into gray.
+-        vec3 scene = color.rgb / (vec3(1.0) + color.rgb * 1.25);
++        vec3 scene = color.rgb / (vec3(1.0) + color.rgb * 0.35);
+         // Clearer bevel reveals the refracted scene; the interior pigment is unchanged.
+-        float pigmentWeight = mix(0.64, 0.78, darkRight) - rim * 0.20;
+-        color.rgb = mix(scene * vec3(0.80, 0.48, 0.76), pigment, pigmentWeight);
++        float pigmentWeight = mix(0.34, 0.48, darkRight) - rim * 0.20;
++        color.rgb = mix(scene * vec3(0.92, 0.68, 0.88), pigment, pigmentWeight);
+         float lip = exp(-max(-sd, 0.0) / 1.25);
+         float directional = 0.45 + 0.55 * max(0.0, dot(normal, normalize(vec2(-0.6, -0.8))));
+-        // Soft inner caustic stays inside the same 18px lens band.
++        // Soft inner caustic stays inside the same 28px lens band.
+         float innerGlow = exp(-max(-sd, 0.0) / 6.0) * rim;
+         color.rgb += vec3(0.85, 0.57, 0.83) * directional * (lip * 0.20 + innerGlow * 0.09);
+         FragColor = vec4(color.rgb, pow(edge, 1.35) * uAlpha);

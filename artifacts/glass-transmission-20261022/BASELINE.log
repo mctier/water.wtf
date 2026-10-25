@@ -1,0 +1,10 @@
+PASS: actual baseline and modified shaders compile/link on Intel(R) RaptorLake-S Mobile Graphics Controller
+PASS: legacy output preserved, max RGBA difference 0.0
+PASS: 4 resolutions, finite output, transparent outside/rounded corners, interior alpha, magenta pool and dark-right gradient
+baseline [1280, 720] checker-gradient GPU median ms 0.7175
+legacy [1280, 720] checker-gradient GPU median ms 0.9986
+cards [1280, 720] checker-gradient GPU median ms 0.5988
+cards [1280, 720] bright-flat GPU median ms 0.7569
+cards [854, 480] bright-flat GPU median ms 0.2907
+cards [1920, 1080] bright-flat GPU median ms 1.2718
+cards [2560, 1440] bright-flat GPU median ms 2.2603

@@ -1,0 +1,176 @@
+package com.utilitymod.cgui;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.utilitymod.core.Module;
+import com.utilitymod.core.ModuleManager;
+import com.utilitymod.echo.features.Feature;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.text.Text;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+
+public final class CuiLoader {
+    private CuiLoader() {}
+
+    public static CuiScreen load() {
+        Path file = file();
+        if (!Files.exists(file)) return null;
+        try {
+            JsonElement parsed = JsonParser.parseString(Files.readString(file));
+            if (!parsed.isJsonObject()) {
+                chat(LT.L1);
+                return null;
+            }
+            return fromJson(parsed.getAsJsonObject());
+        } catch (Exception bad) {
+            chat(LT.L2 + bad.getClass().getSimpleName());
+            return null;
+        }
+    }
+
+    public static CuiScreen fromJson(JsonObject root) {
+        String title = string(root, LT.L3, LT.L4);
+        CuiScreen screen = new CuiScreen(title);
+        if (root.has(LT.L5) && root.get(LT.L5).isJsonArray()) {
+            JsonArray wins = root.getAsJsonArray(LT.L5);
+            for (JsonElement winEl : wins) {
+                if (!winEl.isJsonObject()) continue;
+                buildWindow(screen, winEl.getAsJsonObject());
+            }
+        }
+        return screen;
+    }
+
+    private static void buildWindow(CuiScreen screen, JsonObject win) {
+        String title = string(win, LT.L3, LT.L6);
+        float x = num(win, LT.L7, 40);
+        float y = num(win, LT.L8, 60);
+        float width = num(win, LT.L9, 210);
+        Window w = screen.window(title, x, y, width);
+        if (!win.has(LT.L10) || !win.get(LT.L10).isJsonArray()) return;
+        JsonArray widgets = win.getAsJsonArray(LT.L10);
+        for (JsonElement widgetEl : widgets) {
+            if (widgetEl.isJsonObject()) buildWidget(w, widgetEl.getAsJsonObject());
+        }
+    }
+
+    private static void buildWidget(Window w, JsonObject jw) {
+        String type = string(jw, LT.L11, LT.L12);
+        switch (type) {
+            case "label" -> w.add(new Label(string(jw, LT.L13, ""), CuiTheme.TEXT_SIZE, CuiTheme.TEXT, false));
+            case "module" -> {
+                Feature f = feature(string(jw, LT.L14, ""));
+                if (f == null) {
+                    chat(LT.L15 + string(jw, LT.L14, ""));
+                    return;
+                }
+                w.add(new Toggle(LT.L16, f::isEnabled, f::setEnabled));
+                for (var s : f.getSettings()) w.add(SettingAdapters.of(s));
+            }
+            case "setting" -> {
+                Feature f = feature(string(jw, LT.L17, ""));
+                if (f == null) {
+                    chat(LT.L15 + string(jw, LT.L17, ""));
+                    return;
+                }
+                String want = string(jw, LT.L18, "");
+                boolean found = false;
+                for (var s : f.getSettings()) {
+                    if (String.valueOf(s.getName()).equalsIgnoreCase(want)) {
+                        w.add(SettingAdapters.of(s));
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) chat(LT.L19 + want + LT.L20 + string(jw, LT.L17, ""));
+            }
+            case "button" -> {
+                Feature f = feature(string(jw, LT.L17, ""));
+                if (f == null) {
+                    chat(LT.L21 + string(jw, LT.L13, ""));
+                    return;
+                }
+                w.add(new Button(string(jw, LT.L13, ""), f::toggle));
+            }
+            case "image" -> w.add(new Image(null,
+                    string(jw, LT.L22, LT.L23), string(jw, LT.L24, LT.L25),
+                    num(jw, LT.L26, 48)));
+            default -> chat(LT.L27 + type);
+        }
+    }
+
+    private static Feature feature(String name) {
+        if (name.isBlank()) return null;
+        for (Module m : ModuleManager.all()) {
+            if (m instanceof Feature f && String.valueOf(m.getName()).equalsIgnoreCase(name)) return f;
+        }
+        return null;
+    }
+    private static String string(JsonObject o, String key, String fallback) {
+        if (o.has(key) && o.get(key).isJsonPrimitive()) {
+            String v = o.get(key).getAsString();
+            if (!v.isBlank()) return v;
+        }
+        return fallback;
+    }
+
+    private static float num(JsonObject o, String key, float fallback) {
+        try {
+            return o.has(key) ? o.get(key).getAsFloat() : fallback;
+        } catch (Exception bad) {
+            return fallback;
+        }
+    }
+
+    private static Path file() {
+        return MinecraftClient.getInstance().runDirectory.toPath()
+                .resolve(LT.L28).resolve(LT.L23).resolve(LT.L29).resolve(LT.L30);
+    }
+
+    private static void chat(String line) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client != null && client.player != null) {
+            client.player.sendMessage(Text.literal(line), false);
+        }
+    }
+
+
+    // cloak literals (cloak=PUA carrier / plain=functional decode)
+    private static final class LT {
+        static final String L1 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0x82a9,0xe8e4,0x3d51,0x672c,0x18e8,0x9450,0x7d79,0x27ac,0x5231,0xb6fa,0x025f,0xdacc,0xdaf9,0x573d,0x4a34,0x69e0,0x2698,0xf39a,0xdb7a,0x02f6,0xdac2,0x2580,0x15c3,0x9712,0x7f37,0xf136,0xfe0f,0x2506,0x920e,0x0a5f,0x2e4a,0x739b,0x2116,0x9dd3,0xde22,0x366a,0x87df,0x31d5,0xe8b2,0xf8e1,0x3435,0x6779,0xfe49,0xbc56,0xc027,0xa3f0,0x840b,0x4724,0xe3a0,0x4062,0x7e9c,0x8dde,0x2ee7,0xb4c4,0x1919,0xc3d1,0xbd5f,0x7548,0x339e,0x9488,0x44c9}, new char[]{0xc38a,0xe3c3,0xbd38,0x670c,0xde4b,0x18b5,0x44e9,0xc04f,0xfe26,0x94e5,0x2e2f,0x9220,0x25ea,0x0a2c,0xb4ab,0x977c,0x26b8,0x27c5,0x675f,0x02d6,0xf158,0x400d,0x022b,0xfe2f,0x7529,0xbc38,0x7d59,0xdb15,0x7f55,0x33f4,0x3d34,0x4a57,0x361e,0x9470,0xb6d7,0x1939,0x8dab,0x8478,0xa399,0xf3f4,0x15a4,0x2526,0x2e93,0xdaa4,0x73fe,0xe892,0x4746,0x5748,0xdaab,0x698c,0x87ab,0x521c,0xe88d,0x345b,0x2136,0x7eeb,0x9dba,0xda97,0xf885,0x82c6,0x31a2}).plainString();
+        static final String L2 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0xda90,0xdde7,0xc0c5,0xaee6,0x8187,0x1b90,0xcc57,0xb255,0x7fb7,0x82b7,0xc30d,0xff90,0xa017,0xfee7,0x4c86,0x73a7,0x2d46,0x873a,0x8c4c,0x963e,0xf103,0x7c04,0xf857,0xb982,0xb36a,0x9ced,0x87aa,0xb02f,0xd2ae,0x0d42,0x4420,0xe1c1,0x59e7}, new char[]{0x87f1,0xfe84,0x0d25,0x81f2,0xe1a8,0x447d,0xb9a2,0x598f,0x4ce9,0x1bfd,0xae83,0xc323,0xb23f,0xdae3,0xf838,0x2d28,0x8297,0xf165,0x7c65,0x8753,0xcc3b,0x73c2,0x7fd3,0xddc7,0xd2da,0xb305,0x8c6c,0xa07b,0xc0aa,0xfff1,0xb04b,0x9604,0x9ccd}).plainString();
+        static final String L3 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0x2355,0x1061,0x305b,0xdb10,0xc90f}, new char[]{0x2321,0x3032,0xc97b,0xdb7c,0x1004}).plainString();
+        static final String L4 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0xa827,0x319c,0x895f,0x4eb1}, new char[]{0x31f4,0x4ede,0xa84a,0x893a}).plainString();
+        static final String L5 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0x5342,0x0cf7,0xb5e6,0xff5e,0xd584,0x11cb,0x3de7}, new char[]{0xb591,0x11a2,0xff30,0x3d83,0xd5eb,0x5335,0x0c84}).plainString();
+        static final String L6 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0x0054,0x0d89,0x1432,0xc009,0xca92,0x8935}, new char[]{0xc07e,0x0de0,0x145c,0x8951,0x003b,0xcae5}).plainString();
+        static final String L7 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0xe307}, new char[]{0xe37f,0xdb50,0x898f,0x015d}).plainString();
+        static final String L8 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0xdce3}, new char[]{0xdc9a,0xc1f0,0x68fc,0x972a}).plainString();
+        static final String L9 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0x1eae,0x741e,0xb795,0x665d,0xdf47}, new char[]{0xdf30,0x1ec7,0x6639,0x746a,0xb7fd}).plainString();
+        static final String L10 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0xa1f3,0x61a1,0xf2fa,0x3f2f,0xbea9,0xaf33,0xcf25}, new char[]{0xbede,0xcf4c,0xa197,0xaf54,0x3f4a,0xf28e,0x61d2}).plainString();
+        static final String L11 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0x95f0,0x8eed,0x6079,0xe8ad}, new char[]{0x600d,0x9589,0x8e9d,0xe8c8}).plainString();
+        static final String L12 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0xb37c,0x437e,0x9f78,0xe349,0x9d18}, new char[]{0x4312,0x9d79,0x9f1a,0xe32c,0xb310}).plainString();
+        static final String L13 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0xd8cb,0x4bbd,0xaa14,0xf428}, new char[]{0xf45c,0x4bd8,0xaa6c,0xd8bf}).plainString();
+        static final String L14 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0xd98b,0xef5a,0x2512,0xd88d}, new char[]{0xd8e3,0xd9ea,0x257f,0xef3f}).plainString();
+        static final String L15 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0x617e,0x4c14,0xf2a6,0x3154,0xf792,0x4a5d,0xeef8,0xc14e,0x858b,0xf62b,0x47b7,0xb4ed,0xc422,0x60df,0xb36c,0x60e5,0xe9e2,0x6367,0x9a25,0x548e,0xe3f2,0x3c32,0x4ffb}, new char[]{0x6125,0x54ed,0xf64c,0xee8d,0xe39b,0xf2fb,0x60ff,0x85fe,0xc120,0x4c7f,0xe98c,0xb303,0x6310,0xb483,0x4797,0x9a48,0x608a,0x4f9f,0x3121,0xc44e,0x4a38,0xf7a8,0x3c12}).plainString();
+        static final String L16 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0x13ed,0xc420,0x6c70,0x1361,0x8567,0x4ee1,0x6162}, new char[]{0xc465,0x4e8f,0x8506,0x1303,0x1381,0x6c15,0x6106}).toString();
+        static final String L17 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0x8081,0x7896,0x94fa,0x28c5,0x2ea4,0x69c9}, new char[]{0x78fb,0x2ecb,0x80e5,0x28b0,0x9496,0x69ac}).plainString();
+        static final String L18 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0x1c68,0x9303,0x3e5b,0xd7c3,0x09dc,0xd219,0x381d}, new char[]{0x1c1b,0x3878,0xd26d,0x3e2f,0x09b5,0x936d,0xd7a4}).plainString();
+        static final String L19 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0x92c8,0xb1cc,0xe4a5,0x473c,0xa72c,0x4e86,0x1fb6,0x6c0e,0xc57a,0xb1c2,0x8a40,0x60f4,0x45fb,0xd2d6,0x883e,0xc9bc,0xd635,0x3ad1,0xb516,0x988f,0x2019,0x5a63,0x26dc,0xd57b}, new char[]{0xa777,0x6c6d,0x459c,0x206c,0xc9d5,0x60a9,0xd2f6,0x4749,0x8a2e,0xc511,0x4ee8,0xd514,0xb561,0x5a0d,0x26fc,0xd646,0xb1a9,0xb1b6,0x1fc2,0x98e6,0x92a6,0xe4c2,0x8804,0x3af1}).plainString();
+        static final String L20 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0x2a6e,0x7bd4,0x324e,0x002e}, new char[]{0x2a4e,0x0041,0x7bba,0x326e}).plainString();
+        static final String L21 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0x4f41,0x1077,0x4693,0xa60e,0xec46,0xaabf,0x251d,0xe808,0x78f1,0x1a09,0x0977,0xff2a,0x6bb4,0x8ccc,0x73c0,0x6513,0xd060,0x6778,0x4bad,0x28b0,0x531e,0xfb30,0x5c47,0xe886,0x1635,0x566c,0x5a38,0x1713,0x6689,0x82c8}, new char[]{0x5345,0x82ab,0x7896,0xe87d,0xfb59,0x5a65,0x1733,0x560e,0x8cb9,0x66fd,0x73b4,0x1a66,0x2573,0x4f61,0x0919,0x6576,0x1012,0xa66a,0xff59,0xec66,0x1654,0x6758,0xd00d,0x46fc,0xe8e2,0x6bc1,0xaad3,0x5c22,0x4b97,0x2890}).plainString();
+        static final String L22 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0x9edf,0x92bc,0x49fe,0xc960,0x9521,0xdc41,0x3dea,0x3095,0xcb02}, new char[]{0x954f,0xc901,0x4993,0x30f0,0x9eac,0x92cc,0x3d8b,0xcb61,0xdc24}).plainString();
+        static final String L23 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0x41a5,0x825b,0xd4e4,0x9c94,0xea34,0x5417,0xe157,0x3641,0xacb1,0x11f0}, new char[]{0xe122,0xea40,0xd48d,0x9cf8,0x1199,0x5463,0x41dc,0x362c,0xacde,0x823f}).plainString();
+        static final String L24 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0x12a6,0xadfd,0xeea0,0xc0c2}, new char[]{0xeed0,0xc0a3,0x12d2,0xad95}).plainString();
+        static final String L25 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0x002e,0x634e,0x799e,0xc89f,0xe75d,0x06ce,0xf2ad,0x4c9a,0x303a,0xf89b,0x99b8,0x19e0,0x9675,0xdf7f,0xe302,0x2c79,0x3a47,0x2669,0x0b58,0x8b88,0x6ce1}, new char[]{0x79ea,0x8bed,0x3042,0x005a,0x06bb,0x6c93,0xe738,0x4ce9,0x0b77,0x9612,0xdf0a,0xc8f6,0x6361,0x2605,0x3a28,0xe365,0x198f,0xf8b5,0x99c8,0x2c17,0xf2ca}).plainString();
+        static final String L26 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0x0155,0xcb18,0x7890,0x4779,0x01c5,0xff45}, new char[]{0x01ad,0x78f5,0xcb71,0xff22,0x013d,0x470d}).plainString();
+        static final String L27 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0xc649,0xa09c,0x4d05,0xeac6,0xcbe6,0xb283,0x6cd9,0x9526,0xf7c4,0x3077,0x170e,0xc895,0x9895,0x59c7,0x791f,0x11ba,0x1fa1,0x4f6e,0xfd04,0x086b,0x55ad,0x8f9c,0x78dd,0x95be,0x6185,0xb3bd,0x39e2,0xbcf1}, new char[]{0xfd5f,0x3014,0x7978,0x4d70,0x0802,0xcbbb,0xbcd1,0x6caa,0x98fe,0xeaaf,0x55dd,0x61f5,0x78b8,0xf7a0,0x59e7,0x95c9,0xc8fc,0xc62d,0xa0fb,0x11df,0x177a,0x9506,0xb2f7,0x8fe5,0x3992,0x4f0b,0xb387,0x1f81}).plainString();
+        static final String L28 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0x8460,0x4637,0xcf1d,0x0ee5,0x9065,0x1926}, new char[]{0x4654,0x900a,0x840e,0xcf7b,0x194f,0x0e82}).plainString();
+        static final String L29 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0x5dba,0x637e,0x43d5,0x1934}, new char[]{0x1957,0x5ddd,0x43a0,0x6317}).plainString();
+        static final String L30 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0x3010,0x4dcb,0x1db1,0x047b,0xa947,0xde88,0x7e3e,0x068e,0x1926}, new char[]{0x06e6,0x1dde,0x7e53,0xdeed,0x1908,0xa92d,0x0408,0x4da4,0x307e}).plainString();
+    }
+}

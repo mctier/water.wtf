@@ -1,0 +1,5 @@
+{
+  "src/client/java/com/utilitymod/gui/CardGui.java": "e7d8e63ea1133f12d357a9c8a957835e1f0ba1f229e11805ef375c20985a17e3",
+  "src/client/java/com/utilitymod/echo/render/GlassRenderer.java": "c309fd60d45aee0b0d3167ba52e1dbe715d86f12c2e2137496d98a362c23f49c",
+  "src/main/resources/assets/utilitymod/shaders/glass/lg_tinted.frag": "a04c8fb9afc38e0b0752c7c4f8dcd02ba5380443ee1209034875f8354cf12fd2"
+}

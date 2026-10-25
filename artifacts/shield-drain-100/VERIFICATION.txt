@@ -1,0 +1,26 @@
+Changed field: shieldDrainCps default 20 -> 100; existing 5-per-tick cap retained.
+Original SHA256: 0c2e1679e0a6277e9ee8468f5d1dd5c2d22ab51ddd3e3f269e9194f8c83b9b79
+
+BASELINE: python artifacts/shield-drain-100/verify.py artifacts/shield-drain-100/BASELINE.java 20 artifacts/shield-drain-100/test-baseline
+INPUT: BASELINE.java
+OUTPUT: PASS: 20 attempts / 20 ticks; max 5 per tick; duplicate ticks blocked
+EXIT: 0
+MODIFIED: python artifacts/shield-drain-100/verify.py artifacts/shield-drain-100/MODIFIED_FILE.java 100 artifacts/shield-drain-100/test-modified
+INPUT: MODIFIED_FILE.java
+OUTPUT: PASS: 100 attempts / 20 ticks; max 5 per tick; duplicate ticks blocked
+EXIT: 0
+ROLLBACK: python artifacts/shield-drain-100/verify.py artifacts/shield-drain-100/rollback-test.java 20 artifacts/shield-drain-100/test-rollback
+INPUT: rollback-test.java
+OUTPUT: PASS: 20 attempts / 20 ticks; max 5 per tick; duplicate ticks blocked
+EXIT: 0
+Rollback operation: bash artifacts/shield-drain-100/ROLLBACK.sh artifacts/shield-drain-100/rollback-test.java; output empty; exit 0.
+Restored original SHA256 and 20-attempt behavior on copy; live source remains at default 100.
+Scheduler unit tests only: actual attacks depend on target, aim, weapon readiness, client tick rate and saved settings.
+C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\shield-drain-100\MODIFIED_FILE.java
+C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\shield-drain-100\DIFF_FILE.patch
+C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\shield-drain-100\VERIFICATION.txt
+C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\shield-drain-100\ROLLBACK.sh
+BUILD: gradle build --offline -Parchives_base_name=utilitymod-drain100 --console=plain
+OUTPUT: BUILD SUCCESSFUL in 1m 10s
+EXIT: 0
+JAR reopened: AutoMace.class present

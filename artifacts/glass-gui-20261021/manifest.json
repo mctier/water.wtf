@@ -1,0 +1,7 @@
+{
+  "src/client/java/com/utilitymod/gui/CardGui.java": "a52517b9af31b44a5c0d691edc101a9d3a34bcfb51af6ec94c9b2db4e5c77ff2",
+  "src/client/java/com/utilitymod/gui/GuiConfig.java": "6bfba7d05cce1a461d78a33804c1500d81cb978f25b1275f65f3fae32003e33c",
+  "src/client/java/com/utilitymod/echo/render/GlassRenderer.java": "99581bdeed9a9e92ca483bc49e349f9adea5663eb0a507d0c1475052aa0442dc",
+  "src/client/java/com/utilitymod/gui/CardGuiMotion.java": null,
+  "src/client/java/com/utilitymod/gui/CardGuiStyle.java": null
+}

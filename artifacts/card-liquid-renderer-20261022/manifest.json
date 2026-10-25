@@ -1,0 +1,4 @@
+{
+  "src/client/java/com/utilitymod/echo/render/GlassRenderer.java": "ad9a7f064b4afa3a3769b65f767ac24fa1543323a151881a47037d2f27cf6962",
+  "src/main/resources/assets/utilitymod/shaders/glass/lg_liquid.frag": "6e79f16132cc6829e91a2ca2c66cca0abb91de35b20400847e263d4165612356"
+}

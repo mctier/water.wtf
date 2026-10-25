@@ -1,0 +1,2 @@
+Capes, jump circles, target render markers, anon skin and sounds from
+SoupAPI-recode by Padej_ - https://github.com/Pa-dej/SoupAPI-recode (GPL-3.0, per its fabric.mod.json).

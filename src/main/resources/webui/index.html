@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0a0a0b">
+<title>UtilityMod</title>
+<link rel="stylesheet" href="/style.css">
+<script src="/app.js" defer></script>
+</head>
+<body>
+<noscript><p style="padding:24px">UtilityMod needs JavaScript.</p></noscript>
+
+<aside class="sidebar">
+  <a class="brand" href="/" aria-label="UtilityMod">
+    <span class="mark" aria-hidden="true"></span>
+    <span>UtilityMod</span>
+  </a>
+  <nav id="categories" aria-label="Module categories"></nav>
+  <div class="sidebar-bottom">
+    <div class="status-line"><span class="dot" id="dot"></span><span id="connection">Connecting</span></div>
+  </div>
+</aside>
+
+<main>
+  <header>
+    <h1>Modules</h1>
+    <div class="header-actions">
+      <span class="live-badge off">Offline</span>
+      <details class="appearance">
+        <summary aria-label="Appearance">Appearance</summary>
+        <div class="appearance-popover">
+          <label>Accent<input id="appearance-accent" type="color" value="#ededed"></label>
+          <label>Theme<select id="appearance-mode"><option value="dark">Dark</option><option value="light">Light</option></select></label>
+          <label>Density<select id="appearance-density"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></label>
+          <label>Text size<select id="appearance-scale"><option value="90">90%</option><option value="100">100%</option><option value="110">110%</option><option value="125">125%</option></select></label>
+        </div>
+      </details>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <label class="search"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg><input id="search" type="search" placeholder="Search" aria-label="Search modules"><kbd>/</kbd></label>
+    <label class="active-filter"><input id="activeOnly" type="checkbox"> Enabled only</label>
+    <span id="counts"></span>
+  </div>
+
+  <div id="notice" role="status" aria-live="polite" hidden></div>
+
+  <div class="workspace">
+    <section class="catalog">
+      <div class="section-heading"><h2 id="categoryTitle">All modules</h2><span id="total"></span></div>
+      <div id="modules"></div>
+      <p id="empty" class="empty" hidden>No matches.</p>
+    </section>
+    <section class="editor">
+      <div class="editor-toolbar">
+        <label class="search"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg><input id="settingSearch" type="search" placeholder="Filter settings" aria-label="Search settings"></label>
+        <span id="settingCount"></span>
+      </div>
+      <section class="inspector" id="inspector" aria-label="Module settings">
+        <div class="empty">
+          <h2>Select a module</h2>
+          <p>Its settings show up here and sync with the game live.</p>
+        </div>
+      </section>
+    </section>
+  </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,10 @@
+PASS: actual baseline and modified shaders compile/link on NVIDIA GeForce RTX 5060 Laptop GPU/PCIe/SSE2
+PASS: legacy output preserved, max RGBA difference 0.0
+PASS: 4 resolutions, finite output, transparent outside/rounded corners, interior alpha, magenta pool and dark-right gradient
+baseline [1280, 720] checker-gradient GPU median ms 0.0172
+legacy [1280, 720] checker-gradient GPU median ms 0.0172
+cards [1280, 720] checker-gradient GPU median ms 0.018
+cards [1280, 720] bright-flat GPU median ms 0.0177
+cards [854, 480] bright-flat GPU median ms 0.0091
+cards [1920, 1080] bright-flat GPU median ms 0.0398
+cards [2560, 1440] bright-flat GPU median ms 0.1385

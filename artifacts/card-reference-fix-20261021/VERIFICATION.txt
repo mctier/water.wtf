@@ -1,0 +1,31 @@
+Changed fields: Cards search surface/placeholder/focus, date pattern, description wrapping, title weight, outline icons, shell/card alpha and scoped glass tint.
+BASELINE
+COMMAND: python "C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\card-reference-fix-20261021\verify.py" "C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\card-reference-fix-20261021\baseline" baseline
+INPUT: C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\card-reference-fix-20261021\baseline
+OUTPUT: PASS: baseline reproduces empty placeholder, literal date pattern and unwrapped cloaked spaces
+EXIT: 0
+MODIFIED
+COMMAND: python "C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\card-reference-fix-20261021\verify.py" "C:\Users\fakemoon\Documents\Default Project\utility-mod" modified
+INPUT: C:\Users\fakemoon\Documents\Default Project\utility-mod
+OUTPUT: PASS: search skin/focus, real date, bounded wrapping, translucent material and outline icons verified
+EXIT: 0
+ROLLBACK
+COMMAND: python "C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\card-reference-fix-20261021\verify.py" "C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\card-reference-fix-20261021\rollback-test" baseline
+INPUT: C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\card-reference-fix-20261021\rollback-test
+OUTPUT: PASS: baseline reproduces empty placeholder, literal date pattern and unwrapped cloaked spaces
+EXIT: 0
+ROLLBACK COMMAND: bash artifacts/card-reference-fix-20261021/ROLLBACK.sh artifacts/card-reference-fix-20261021/rollback-test
+ROLLBACK OUTPUT: PASS: original files restored; new icon helper removed
+ROLLBACK EXIT: 0
+Restored status: original SHA256 hashes match on test copy; working sources remain modified.
+REGRESSION: extracted Text.lines with monospace width stub; cloaked-space normalization and actual Java date formatting passed.
+BUILD COMMAND: gradle build --offline -Parchives_base_name=utilitymod-cards-referencefix --console=plain
+BUILD OUTPUT: BUILD SUCCESSFUL in 1m 25s
+BUILD EXIT: 0
+JAR: C:\Users\fakemoon\Documents\Default Project\utility-mod\build\libs\utilitymod-cards-referencefix-1.0.0.jar
+JAR SHA256: e56d16394ee67fb4ef82ea458d8e760ded6b191d3aff45876008c502c08d49b0
+Visual status: corrections based on supplied in-game screenshot; updated live rendering has not been captured.
+C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\card-reference-fix-20261021\MODIFIED_FILE
+C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\card-reference-fix-20261021\DIFF_FILE.patch
+C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\card-reference-fix-20261021\VERIFICATION.txt
+C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\card-reference-fix-20261021\ROLLBACK.sh

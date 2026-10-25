@@ -1,0 +1,11 @@
+--- a/AutoMace.java
++++ b/AutoMace.java
+@@ -111,7 +111,7 @@
+     /** Drain shield durability so it breaks in one tap. */
+     private final BoolSetting oneTap = new BoolSetting(LT.L4, false);
+     private final BoolSetting shieldDrain = new BoolSetting(ModuleText.S19, false);
+-    private final IntSetting shieldDrainCps = new IntSetting(LT.L5, 20, 10, 100, LT.L6, o -> shieldDrain.getValue());
++    private final IntSetting shieldDrainCps = new IntSetting(LT.L5, 100, 10, 100, LT.L6, o -> shieldDrain.getValue());
+     private final com.utilitymod.echo.features.settings.impl.InputSimulationSetting inputSimulation =
+             new com.utilitymod.echo.features.settings.impl.InputSimulationSetting(ModuleText.S70, false, o -> shieldDrain.getValue());
+     private final BoolSetting autoMace = new BoolSetting(ModuleText.S0, true);

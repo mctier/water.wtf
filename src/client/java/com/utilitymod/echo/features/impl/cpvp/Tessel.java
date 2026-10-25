@@ -1,0 +1,73 @@
+package com.utilitymod.echo.features.impl.cpvp;
+
+import com.utilitymod.echo.event.EventSubscribe;
+import com.utilitymod.echo.event.impl.EventHandleInput;
+import com.utilitymod.echo.utils.EncryptedString;
+import com.utilitymod.echo.features.Category;
+import com.utilitymod.echo.utils.EncryptedString;
+import com.utilitymod.echo.features.Feature;
+import com.utilitymod.echo.utils.EncryptedString;
+import com.utilitymod.echo.features.FeatureInfo;
+import com.utilitymod.echo.utils.EncryptedString;
+import com.utilitymod.echo.features.settings.impl.BoolSetting;
+import com.utilitymod.echo.utils.EncryptedString;
+import com.utilitymod.echo.features.settings.impl.FloatSetting;
+import com.utilitymod.echo.utils.EncryptedString;
+import com.utilitymod.echo.features.settings.impl.ModeSetting;
+import com.utilitymod.echo.utils.EncryptedString;
+import com.utilitymod.echo.features.settings.impl.RangeSetting;
+import net.minecraft.item.Items;
+import net.minecraft.util.math.BlockPos;
+
+/**
+ * LegacyPort Tessel: places an anchor at the crosshair spot. One-Shot turns itself off after
+ * each place (bind it and tap); Persistent keeps placing while enabled (use a hold bind on the module).
+ */
+public class Tessel extends Feature {
+    private final ModeSetting fireMode = new ModeSetting(new EncryptedString(new char[]{0x0b33, 0x1c97, 0x82c9, 0x379e, 0xbc0c, 0xa8a2, 0xb142, 0x226a, 0xd13c}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be, 0xb10f, 0x0b5c, 0x82ad, 0x1cf2}), new EncryptedString(new char[]{0x227d, 0xd135, 0xb167, 0x0b33, 0xbc44, 0x37ed, 0xa8a5, 0x82d9}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be, 0xb10f, 0x0b5c, 0x82ad}), new EncryptedString(new char[]{0x227d, 0xd135, 0xb167, 0x0b33, 0xbc44, 0x37ed, 0xa8a5, 0x82d9}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be, 0xb10f, 0x0b5c, 0x82ad}), new EncryptedString(new char[]{0xa8ae, 0x9637, 0x82c8, 0x37d7, 0x0b28, 0x1c9c, 0x226a, 0xb17c, 0xd12a, 0xbc1a}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be, 0xb10f, 0x0b5c, 0x82ad, 0x1cf2, 0x9643}));
+    private final RangeSetting delay = new RangeSetting(new EncryptedString(new char[]{0x2274, 0xd13e, 0x37c7, 0xa8ae, 0xbc08}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be}), 30f, 30f, 0f, 200f, 1f);
+    private final ModeSetting swap = new ModeSetting(new EncryptedString(new char[]{0x2279, 0xa8bc, 0xd129, 0xbc19}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69}), new EncryptedString(new char[]{0x2279, 0xa8bc, 0xd129, 0xbc19}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69}), new EncryptedString(new char[]{0x2276, 0xa8a4, 0xd134, 0xbc0c}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69}), new EncryptedString(new char[]{0x2279, 0xa8bc, 0xd129, 0xbc19}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69}));
+    private final BoolSetting swapBack = new BoolSetting(new EncryptedString(new char[]{0x0b3d, 0x1c99, 0x82ce, 0x379e, 0xbc19, 0xa8bc, 0xb14d, 0x2279, 0xd129}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be, 0xb10f, 0x0b5c, 0x82ad, 0x1cf2}), false);
+    private final BoolSetting sAim = new BoolSetting(new EncryptedString(new char[]{0xa8a2, 0x962e, 0x82ec, 0x37d0, 0x0b7c, 0x1c9b, 0x2274, 0xb17b, 0xd129, 0xbc0c}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be, 0xb10f, 0x0b5c, 0x82ad, 0x1cf2, 0x9643}), false);
+    private final FloatSetting fov = new FloatSetting(new EncryptedString(new char[]{0xd129, 0x0b7c, 0xb17b, 0x37d0, 0x962e, 0x2274, 0xeba7, 0xfcd1, 0x82ec, 0xbc0c, 0xa8a2, 0x1c9b, 0x11b0, 0x6579}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be, 0xb10f, 0x0b5c, 0x82ad, 0x1cf2, 0x9643, 0x1190, 0xebe1, 0x6536, 0xfc87}), 180f, 0f, 180f, 1f);
+
+    private long readyAt;
+    private BlockPos spot;
+
+    public Tessel() {
+        super(new FeatureInfo(new EncryptedString(new char[]{0xeb84, 0x0b7c, 0x1c9e, 0x9622, 0x226b, 0xd12e, 0x11f3, 0x82fd, 0xa8ae, 0x37db, 0xb163, 0xbc1a}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be, 0xb10f, 0x0b5c, 0x82ad, 0x1cf2, 0x9643, 0x1190, 0xebe1}), new EncryptedString(new char[]{0x04a3, 0x6d7a, 0x1cd2, 0x0b7c, 0x2a90, 0x335b, 0x723b, 0x3fbd, 0xe72f, 0xeb92, 0x8ae5, 0xd93a, 0xc5da, 0xa1af, 0x2279, 0xd2bd, 0x7e8b, 0xac48, 0x93bd, 0xcdfb, 0x76a3, 0x37db, 0xb17c, 0xd12a, 0x2619, 0xa8a7, 0x4a4a, 0x11f5, 0xb995, 0x47cf, 0xc150, 0x82cc, 0xa43e, 0x58e2, 0x9e43, 0x3b71, 0xbc0a, 0x5f66, 0x6546, 0xfce6, 0x9631, 0x1857, 0x50c6, 0xf899, 0xf04b, 0xb549}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be, 0xb10f, 0x0b5c, 0x82ad, 0x1cf2, 0x9643, 0x1190, 0xebe1, 0x6536, 0xfc87, 0x76d4, 0xf025, 0x4a6a, 0xc5bb, 0x5f08, 0xd959, 0x50ae, 0x2aff, 0xa44c, 0x3f9d, 0xb9e2, 0x3333, 0x8a80, 0x04d1, 0x9e26, 0x1877, 0x93c4, 0x6d15, 0xe75a, 0x7eab, 0xf8f8, 0x7249, 0xcd9e, 0x47ef, 0xc13c, 0x588d, 0xd2d2, 0xac23, 0x2670, 0xa1c1, 0x3b16, 0xb567}), Category.COMBAT));
+        Cpvp.track();
+    }
+
+    @Override
+    public void onEnable() {
+        super.onEnable();
+        spot = null;
+    }
+
+    @EventSubscribe
+    @SuppressWarnings("unused")
+    private void onInput(EventHandleInput.Early e) {
+        if (isNull() || mc.currentScreen != null || System.currentTimeMillis() < readyAt) return;
+        int slot = Cpvp.hotbar(Items.RESPAWN_ANCHOR);
+        if (slot < 0) { if (fireMode.is(new EncryptedString(new char[]{0x227d, 0xd135, 0xb167, 0x0b33, 0xbc44, 0x37ed, 0xa8a5, 0x82d9}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be, 0xb10f, 0x0b5c, 0x82ad}))) setEnabled(false); return; }
+        if (spot == null || !Cpvp.canPlace(spot)) {
+            var hit = Cpvp.crosshairBlock();
+            if (hit == null) return;
+            BlockPos p = mc.world.getBlockState(hit.getBlockPos()).isReplaceable() ? hit.getBlockPos() : hit.getBlockPos().offset(hit.getSide());
+            if (!Cpvp.canPlace(p)) return;
+            spot = p.toImmutable();
+        }
+        int home = Cpvp.selected();
+        if (swap.is(new EncryptedString(new char[]{0x2276, 0xa8a4, 0xd134, 0xbc0c}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69})) && home != slot) return;
+        Cpvp.select(slot, swap.getValue());
+        var support = com.utilitymod.echo.utils.blocks.BlockUtils.findPlacementHit(spot, false);
+        if (support == null) { spot = null; return; }
+        if (!Cpvp.aimed(this, sAim.getValue(), fov.getValue(), support.hitResult().getPos(), support.hitResult().getBlockPos())) return;
+        boolean ok = Cpvp.place(spot);
+        if (swapBack.getValue() && home != slot) Cpvp.restore(home, swap.getValue());
+        readyAt = Cpvp.next(delay);
+        spot = null;
+        if (ok && fireMode.is(new EncryptedString(new char[]{0x227d, 0xd135, 0xb167, 0x0b33, 0xbc44, 0x37ed, 0xa8a5, 0x82d9}, new char[]{0xd17a, 0xa8cb, 0x2218, 0xbc69, 0x37be, 0xb10f, 0x0b5c, 0x82ad}))) setEnabled(false);
+    }
+}

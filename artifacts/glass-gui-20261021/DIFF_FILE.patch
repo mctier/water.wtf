@@ -1,0 +1,847 @@
+--- a/src/client/java/com/utilitymod/gui/CardGui.java
++++ b/src/client/java/com/utilitymod/gui/CardGui.java
+@@ -49,16 +49,16 @@
+  * module's settings sheet. Same module model and sounds as the other GUIs.
+  */
+ public final class CardGui extends Screen {
+-    private static final int BASE_W = 584;
+-    private static final int BASE_H = 390;
+-    private static final int SIDEBAR_UNITS = 152;
+-    private static final int CARD_HEIGHT_UNITS = 62;
++    private static final int BASE_W = 610;
++    private static final int BASE_H = 400;
++    private static final int SIDEBAR_UNITS = 155;
++    private static final int CARD_HEIGHT_UNITS = 63;
+     private static final int CARD_GAP_UNITS = 10;
+     private static final int CARD_RADIUS_UNITS = 11;
+     private static final int COLS = 2;
+     private static final int PINK = 0xFFCE52B3, INK = 0xFFF7EAF5, MUTED = 0xFFD4B8D1;
+     private static final int[] NAV_ICONS = {0xe145, 0xe566, 0xe8f4, 0xe55b, 0xe8b8, 0xe8cb};
+-    private static final String[] CLIENT_LINKS = {LT.L1, LT.L2, LT.L3, LT.L4};
++    private static final String[] CLIENT_LINKS = {"Configs", "Themes", "Keybinds", "Options"};
+     private static final int SEARCH_H_UNITS = 28;
+ 
+     private record Cat(String label, com.utilitymod.gui.Category category) {}
+@@ -84,6 +84,24 @@
+     private float scroll;
+     private float scrollGoal;
+     private boolean closing;
++    private final CardGuiMotion motion = new CardGuiMotion();
++    private long frameTime;
++    private float frameEase = .2f;
++    private boolean pointerHeld;
++    private int page; // 0 modules, 1 configs, 2 themes, 3 keybinds, 4 options
++    private TextInput profileInput;
++    private final StringBuilder profileName = new StringBuilder();
++    private List<String> profiles = List.of();
++    private float pageScroll, pageMax;
++    private String notice = "", pendingDelete, bindingModule;
++    private boolean bindingMenu;
++    private int colorEditor = -1;
++    private final List<Hotspot> hotspots = new ArrayList<>();
++    private Hotspot dragging;
++    private record Hotspot(float x, float y, float w, float h, java.util.function.BiConsumer<Double, Double> action, boolean drag) {
++        boolean contains(double mx, double my) { return mx >= x && mx < x+w && my >= y && my < y+h; }
++    }
++
+ 
+     // Settings sheet state.
+     private record Row(Setting setting, Control control, boolean wide) {}
+@@ -107,7 +125,9 @@
+     @Override
+     protected void init() {
+         com.utilitymod.gui.GuiTextures.ensureLoaded();
+-        scale = Math.max(0.1f, Math.min((width - 16f) / BASE_W, (height - 16f) / BASE_H));
++        scale = fitScale();
++        motion.reset();
++        frameTime = System.nanoTime();
+         panelW = Math.max(1, Math.round(BASE_W * scale));
+         panelH = Math.max(1, Math.round(BASE_H * scale));
+         panelX = (width - panelW) / 2;
+@@ -117,7 +137,27 @@
+         search = new TextInput(0, 0, 10, 10, scale, net.minecraft.text.Text.literal(LT.L12), 24,
+                 query::toString, s -> { query.setLength(0); query.append(s); });
+         search.setFocused(false);
++        profileInput = new TextInput(0, 0, 10, 10, scale, net.minecraft.text.Text.literal("New profile name..."), 48,
++                profileName::toString, v -> { profileName.setLength(0); profileName.append(v); });
++        profiles = GuiConfig.profiles();
+         closeSheet();
++    }
++
++    private float fitScale() {
++        float desired = Math.min(width * .64f / BASE_W, height * .74f / BASE_H) * CardGuiStyle.size / 100f;
++        return Math.max(.1f, Math.min(desired, Math.min((width-16f)/BASE_W, (height-16f)/BASE_H)));
++    }
++
++    private void layoutMotion(int mx, int my) {
++        long now = System.nanoTime();
++        float dt = frameTime == 0 ? 1f/60f : (now-frameTime)/1_000_000_000f;
++        frameTime = now;
++        frameEase = 1f-(float)Math.exp(-14f*Math.min(.05f, Math.max(0,dt)));
++        int bx=(width-panelW)/2, by=(height-panelH)/2;
++        motion.update(mx,my,bx,by,panelW,panelH,scale,dt,CardGuiStyle.motion && CardGuiStyle.gravity>0,
++                pointerHeld || sheetModule!=null || (focus!=null && focus.capturesInput()));
++        panelX=bx+Math.round(motion.x()*CardGuiStyle.gravity/100f);
++        panelY=by+Math.round(motion.y()*CardGuiStyle.gravity/100f);
+     }
+ 
+     @Override
+@@ -153,6 +193,8 @@
+     @Override
+     public void render(DrawContext graphics, int mouseX, int mouseY, float delta) {
+         Theme.update();
++        layoutMotion(mouseX, mouseY);
++        hotspots.clear();
+         if (closing && reveal.value() <= 0f) {
+             MinecraftClient.getInstance().setScreen(null);
+             return;
+@@ -161,39 +203,199 @@
+         graphics.createNewRootLayer();
+         if (shown < 1f) graphics.fill(0, 0, width, height, Colors.withAlpha(0xFF08080C, 0.55f * (1f - shown)));
+ 
+-        int radius = Math.round(10 * scale);
++        int radius = Math.max(1, Math.round(CardGuiStyle.radius * scale));
+         for (int i = 6; i >= 1; i--) {
+             int s = i * 2;
+             Draw.rect(graphics, panelX - s, panelY - s + 3, panelW + 2 * s, panelH + 2 * s,
+                     radius + s, Colors.withAlpha(0xFF000000, 0.04f));
+         }
+-        if (com.utilitymod.echo.render.GlassRenderer.available()) {
++        if (CardGuiStyle.glass && com.utilitymod.echo.render.GlassRenderer.available()) {
+             com.utilitymod.echo.render.GlassRenderer.queue(new com.utilitymod.echo.render.GlassRenderer.Panel(
+-                    panelX, panelY, panelW, panelH, radius, 0.8f));
+-            com.utilitymod.echo.render.GlassRenderer.flush(graphics);
+-        }
+-        Draw.rect(graphics, panelX, panelY, panelW, panelH, radius, 0xB53C0737);
+-        Draw.rect(graphics, panelX, panelY, sidebarW, panelH, radius, 0x8A49033E);
+-        graphics.fill(contentX()-1, panelY, contentX(), panelY+panelH, 0x285FEAFF);
+-        graphics.fill(contentX(), panelY+Math.round(44*scale), panelX+panelW, panelY+Math.round(44*scale)+1, 0x22FFFFFF);
++                    panelX, panelY, panelW, panelH, radius, 0.92f));
++            com.utilitymod.echo.render.GlassRenderer.flushCard(graphics, CardGuiStyle.background, CardGuiStyle.blur / 5f, !CardGuiStyle.motion);
++        }
++        boolean glassReady = CardGuiStyle.glass && com.utilitymod.echo.render.GlassRenderer.available();
++        if (!glassReady) com.utilitymod.echo.render.GlassRenderer.reportCardGate(CardGuiStyle.glass);
++        Draw.rect(graphics, panelX, panelY, panelW, panelH, radius, Colors.withAlpha(CardGuiStyle.back, glassReady ? .48f : .94f));
++        com.utilitymod.gui.Rounded.outline(graphics, panelX, panelY, panelW, panelH, radius, 1f, 0x35F4C4EF);
++        Draw.rect(graphics, panelX, panelY, sidebarW, panelH, radius, Colors.withAlpha(CardGuiStyle.background, .24f));
++        graphics.fill(contentX()-1, panelY, contentX(), panelY+panelH, 0x22F0B6E5);
++        graphics.fill(contentX(), panelY+Math.round(48*scale), panelX+panelW, panelY+Math.round(48*scale)+1, 0x22FFFFFF);
+ 
+         drawSidebar(graphics, mouseX, mouseY);
+         drawTopbar(graphics);
+         drawSearch(graphics, mouseX, mouseY, delta);
+-        drawCards(graphics, mouseX, mouseY, delta);
++        if (page == 0) {
++            drawCategoryHeader(graphics);
++            drawCards(graphics, mouseX, mouseY, delta);
++        } else drawClientPage(graphics, mouseX, mouseY, delta);
+         if (sheetModule != null) drawSheet(graphics, mouseX, mouseY, delta);
++    }
++
++    private void drawCategoryHeader(DrawContext g) {
++        String label=CATS.stream().filter(c->c.category==selected).findFirst().map(Cat::label).orElse("Modules");
++        List<Module> entries=visible();
++        long enabled=entries.stream().filter(Module::isEnabled).count();
++        Draw.icon(g,NAV_ICONS[Math.max(0, CATS.indexOf(CATS.stream().filter(c->c.category==selected).findFirst().orElse(CATS.get(0))))],contentX()+15*scale,panelY+64*scale,12*scale,CardGuiStyle.accent);
++        Text.draw(g,label,contentX()+34*scale,panelY+71*scale,10*scale,INK);
++        Text.draw(g,entries.size()+" modules",contentX()+39*scale+Text.width(label,10*scale),panelY+71*scale,6.5f*scale,MUTED);
++        String on=enabled+" on";
++        float bx=panelX+panelW-47*scale;
++        Draw.rect(g,bx,panelY+60*scale,35*scale,Math.round(17*scale),Math.round(3*scale),0x22FFFFFF);
++        Text.draw(g,on,bx+6*scale,panelY+68.5f*scale,6.5f*scale,INK);
++        g.fill(contentX()+Math.round(12*scale),panelY+Math.round(84*scale),panelX+panelW-Math.round(12*scale),panelY+Math.round(84*scale)+1,0x18FFFFFF);
++    }
++
++    private void setPage(int value) {
++        page=value; pageScroll=0; colorEditor=-1; pendingDelete=null; bindingModule=null; bindingMenu=false;
++        closeSheet(); focus=null; search.setFocused(false); profileInput.setFocused(false);
++        profiles=GuiConfig.profiles(); notice="";
++        UiSounds.play(UiSounds.Sound.TAB);
++    }
++    private float pageX() { return contentX()+16*scale; }
++    private float pageWidth() { return contentW()-32*scale; }
++    private void hot(float x,float y,float w,float h,boolean drag,java.util.function.BiConsumer<Double,Double> action) {
++        float top=panelY+56*scale, bottom=panelY+panelH-12*scale;
++        if(y>=top && y+h<=bottom) hotspots.add(new Hotspot(x,y,w,h,action,drag));
++    }
++    private void button(DrawContext g,String text,float x,float y,float w,Runnable action,boolean danger) {
++        Draw.rect(g,x,y,w,Math.max(1,Math.round(20*scale)),Math.round(3*scale),danger?0x804B2330:Colors.withAlpha(CardGuiStyle.accent,.64f));
++        Text.drawCenteredX(g,text,x+w/2,y+10*scale,7*scale,INK);
++        hot(x,y,w,20*scale,false,(mx,my)->action.run());
++    }
++    private void change(java.util.function.IntConsumer set,int value) { set.accept(value); GuiConfig.markDirty(); }
++    private float slider(DrawContext g,String label,float y,int min,int max,int value,java.util.function.IntConsumer set) {
++        float x=pageX()+14*scale,w=pageWidth()-28*scale;
++        Text.draw(g,label,x,y+8*scale,8*scale,INK);
++        String val=Integer.toString(value); Text.draw(g,val,x+w-Text.width(val,8*scale),y+8*scale,8*scale,INK);
++        float ty=y+22*scale,t=(value-min)/(float)(max-min);
++        Draw.rect(g,x,ty,w,Math.max(1,Math.round(4*scale)),0,0x446F4F69);
++        Draw.rect(g,x,ty,w*t,Math.max(1,Math.round(4*scale)),0,CardGuiStyle.accent);
++        Draw.rect(g,x+w*t-4*scale,ty-3*scale,8*scale,Math.max(1,Math.round(10*scale)),Math.round(2*scale),0xFF352332);
++        Draw.rect(g,x+w*t-3*scale,ty-2*scale,6*scale,Math.max(1,Math.round(8*scale)),Math.round(1*scale),INK);
++        hot(x-4*scale,ty-5*scale,w+8*scale,15*scale,true,(mx,my)->change(set,min+Math.round(Math.max(0,Math.min(1,(float)(mx-x)/w))*(max-min))));
++        return y+38*scale;
++    }
++    private float toggle(DrawContext g,String label,float y,boolean value,Runnable change) {
++        float x=pageX()+14*scale,w=pageWidth()-28*scale;
++        Text.draw(g,label,x,y+10*scale,8*scale,INK);
++        float tx=x+w-28*scale;
++        Draw.rect(g,tx,y+2*scale,28*scale,Math.round(16*scale),Math.round(3*scale),value?CardGuiStyle.accent:0x665C4B60);
++        Draw.rect(g,tx+(value?17:3)*scale,y+5*scale,9*scale,Math.round(10*scale),Math.round(2*scale),INK);
++        hot(x,y,w,22*scale,false,(mx,my)->{change.run();GuiConfig.markDirty();});
++        return y+28*scale;
++    }
++    private int color(int i) { return i==0?CardGuiStyle.accent:i==1?CardGuiStyle.background:CardGuiStyle.back; }
++    private void color(int i,int c) {
++        if(i==0)CardGuiStyle.accent=c;else if(i==1)CardGuiStyle.background=c;else CardGuiStyle.back=c;
++        GuiConfig.markDirty();
++    }
++    private float colorRow(DrawContext g,String label,int index,float y) {
++        float x=pageX()+14*scale,w=pageWidth()-28*scale;
++        Text.draw(g,label,x,y+10*scale,8*scale,INK);
++        Draw.rect(g,x+w-46*scale,y+3*scale,31*scale,Math.round(15*scale),Math.round(2*scale),color(index));
++        Text.draw(g,colorEditor==index?"v":">",x+w-7*scale,y+10*scale,8*scale,MUTED);
++        hot(x,y,w,24*scale,false,(mx,my)->colorEditor=colorEditor==index?-1:index);
++        y+=27*scale;
++        if(colorEditor!=index)return y;
++        float[] hsv=java.awt.Color.RGBtoHSB((color(index)>>16)&255,(color(index)>>8)&255,color(index)&255,null);
++        float cy=y, ch=58*scale,hy=y+64*scale;
++        int hue=0xFF000000|java.awt.Color.HSBtoRGB(hsv[0],1,1);
++        // Horizontal saturation and vertical value gradients, in 32 bounded strips.
++        for(int j=0;j<32;j++) {
++            int x0=Math.round(x+w*j/32),x1=Math.round(x+w*(j+1)/32);
++            g.fillGradient(x0,Math.round(cy),x1,Math.round(cy+ch),Colors.lerp(0xFFFFFFFF,hue,j/31f),0xFF000000);
++        }
++        Draw.rect(g,x+hsv[1]*w-2*scale,cy+(1-hsv[2])*ch-2*scale,4*scale,Math.max(1,Math.round(4*scale)),Math.round(scale),INK);
++        Draw.hueBar(g,Math.round(x),Math.round(hy),Math.round(w),Math.max(1,Math.round(8*scale)),0);
++        Draw.rect(g,x+hsv[0]*w-1*scale,hy-1*scale,2*scale,Math.round(10*scale),0,INK);
++        hot(x,cy,w,ch,true,(mx,my)->color(index,java.awt.Color.HSBtoRGB(hsv[0],Math.max(0,Math.min(1,(float)(mx-x)/w)),1-Math.max(0,Math.min(1,(float)(my-cy)/ch)))));
++        hot(x,hy,w,8*scale,true,(mx,my)->color(index,java.awt.Color.HSBtoRGB(Math.max(0,Math.min(1,(float)(mx-x)/w)),hsv[1],hsv[2])));
++        return y+82*scale;
++    }
++    private void drawClientPage(DrawContext g,int mx,int my,float delta) {
++        float x=pageX(),w=pageWidth(),top=panelY+60*scale,bottom=panelY+panelH-14*scale;
++        if(page==1) {
++            profileInput.visible=true; profileInput.setX(Math.round(x));profileInput.setY(Math.round(top));
++            profileInput.setWidth(Math.round(w-78*scale));profileInput.setHeight(Math.round(25*scale));
++            profileInput.draw(g,mx,my,delta);
++            button(g,"Save",x+w-70*scale,top+2*scale,70*scale,()->{
++                notice=GuiConfig.saveProfile(profileName.toString())?"Profile saved":"Enter a valid profile name";
++                profiles=GuiConfig.profiles();
++            },false);
++            int listTop=Math.round(top+36*scale),listBottom=Math.round(bottom-13*scale);
++            pageMax=Math.max(0,profiles.size()*32*scale-(listBottom-listTop));pageScroll=Math.min(pageMax,pageScroll);
++            Scissor.clip(g,Math.round(x),listTop,Math.round(w),listBottom-listTop,()->{
++                for(int i=0;i<profiles.size();i++) {
++                    String name=profiles.get(i);float y=listTop+i*32*scale-pageScroll;
++                    if(y<listTop || y+27*scale>listBottom)continue;
++                    Draw.rect(g,x,y,w,Math.round(27*scale),Math.round(3*scale),0x25FFFFFF);
++                    Text.draw(g,Text.fit(name,w-130*scale,8*scale),x+13*scale,y+13*scale,8*scale,INK);
++                    button(g,"Load",x+w-90*scale,y+3*scale,50*scale,()->{notice=GuiConfig.loadProfile(name)?"Profile loaded":"Load failed";},false);
++                    button(g,name.equals(pendingDelete)?"Yes?":"X",x+w-32*scale,y+3*scale,28*scale,()->{
++                        if(name.equals(pendingDelete)){ GuiConfig.deleteProfile(name); profiles=GuiConfig.profiles();pendingDelete=null; }
++                        else {pendingDelete=name;notice="Click Yes? to delete "+name;}
++                    },true);
++                }
++                if(profiles.isEmpty())Text.draw(g,"No saved profiles yet.",x+12*scale,listTop+15*scale,8*scale,MUTED);
++            });
++            Text.draw(g,Text.fit(notice.isEmpty()?"Autosave keeps the current state; profiles are snapshots.":notice,w,6.5f*scale),x+3*scale,bottom-3*scale,6.5f*scale,MUTED);
++            return;
++        }
++        int clipTop=Math.round(top),clipBottom=Math.round(bottom);
++        Scissor.clip(g,Math.round(x),clipTop,Math.round(w),clipBottom-clipTop,()->{
++            Draw.rect(g,x,top,w,Math.round(bottom-top),Math.round(4*scale),0x1EFFFFFF);
++            float y=top+13*scale-pageScroll;
++            Text.drawCenteredX(g,CLIENT_LINKS[page-1],x+w/2,y,7*scale,MUTED); y+=15*scale;
++            if(page==2) {
++                y=colorRow(g,"Main colour",0,y);y=colorRow(g,"Background",1,y);y=colorRow(g,"Back",2,y);
++                y=slider(g,"Blur",y,0,30,CardGuiStyle.blur,v->CardGuiStyle.blur=v);
++                y=slider(g,"GUI radius",y,4,60,CardGuiStyle.radius,v->CardGuiStyle.radius=v);
++                y=slider(g,"Module radius",y,2,40,CardGuiStyle.cardRadius,v->CardGuiStyle.cardRadius=v);
++                y=toggle(g,"Liquid glass",y,CardGuiStyle.glass,()->CardGuiStyle.glass=!CardGuiStyle.glass);
++                y=toggle(g,"Hover push",y,CardGuiStyle.motion,()->CardGuiStyle.motion=!CardGuiStyle.motion);
++                y=slider(g,"Push strength",y,0,100,CardGuiStyle.gravity,v->CardGuiStyle.gravity=v);
++            } else if(page==4) {
++                Text.draw(g,"Open menu",x+14*scale,y+10*scale,8*scale,INK);
++                button(g,bindingMenu?"Press key...":dev.koifih.client.input.Keybinds.panelKey().getLocalizedText().getString(),x+w-100*scale,y,86*scale,()->bindingMenu=true,false);y+=32*scale;
++                y=toggle(g,"Menu sounds",y,UiSounds.enabled,()->UiSounds.enabled=!UiSounds.enabled);
++                y=slider(g,"GUI scale (%)",y,70,120,CardGuiStyle.size,v->CardGuiStyle.size=v);
++                y=toggle(g,"Reduced motion",y,!CardGuiStyle.motion,()->CardGuiStyle.motion=!CardGuiStyle.motion);
++                y=toggle(g,"Glass effects",y,CardGuiStyle.glass,()->CardGuiStyle.glass=!CardGuiStyle.glass);
++                button(g,"Profiles folder",x+14*scale,y,w-28*scale,GuiConfig::openProfileFolder,false); y+=32*scale;
++                Text.draw(g,"Escape cancels rebind. Right click anywhere here resets the open key.",x+14*scale,y,6.5f*scale,MUTED); y+=22*scale;
++            } else {
++                Text.draw(g,"Module toggle keys - click to bind; Delete clears.",x+14*scale,y,6.5f*scale,MUTED);y+=18*scale;
++                List<Module> modules=new ArrayList<>(ModuleManager.all());modules.addAll(com.utilitymod.anubis.AnubisBridge.features());
++                for(Module m:modules) {
++                    if(query.length()>0 && !m.getName().toLowerCase(Locale.ROOT).contains(query.toString().toLowerCase(Locale.ROOT)))continue;
++                    if(y>=top && y+23*scale<=bottom) {
++                        Text.draw(g,Text.fit(m.getName(),w-120*scale,8*scale),x+14*scale,y+10*scale,8*scale,INK);
++                        String key=m.getName().equals(bindingModule)?"Press key...":ModuleBinds.name(ModuleBinds.get(m.getName()));
++                        button(g,key.isEmpty()?"Unbound":key,x+w-96*scale,y,82*scale,()->bindingModule=m.getName(),false);
++                    }
++                    y+=27*scale;
++                }
++            }
++            pageMax=Math.max(0,y+pageScroll-bottom+10*scale);
++        });
++        pageScroll=Math.max(0,Math.min(pageScroll,pageMax));
++        if(pageMax>0) {
++            float track=bottom-top,thumb=Math.max(12*scale,track*track/(track+pageMax));
++            Draw.rect(g,x+w-3*scale,top+(track-thumb)*pageScroll/pageMax,2*scale,Math.round(thumb),0,CardGuiStyle.accent);
++        }
+     }
+ 
+     private void drawTopbar(DrawContext graphics) {
+         String user = MCA.player != null ? MCA.player.getName().getString() : LT.L13;
+         String date = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern(LT.L14, Locale.ENGLISH));
+-        float right=panelX+panelW-44*scale;
++        float right=panelX+panelW-48*scale;
+         Text.draw(graphics, user, right-Text.width(user,8.5f*scale), panelY+14*scale,8.5f*scale,INK);
+         Text.draw(graphics, date, right-Text.width(date,6f*scale), panelY+27*scale,6f*scale,MUTED);
+         Draw.rect(graphics,panelX+panelW-36*scale,panelY+5*scale,29*scale,Math.round(29*scale),Math.round(7*scale),0xFFE9A1CF);
+         Draw.icon(graphics,dev.koifih.client.render.AdinIcon.USER,Math.round(panelX+panelW-30*scale),Math.round(panelY+11*scale),Math.round(17*scale),0xFFFADEEE);
+-        Draw.rect(graphics,contentX()+294*scale,panelY+6*scale,27*scale,Math.round(27*scale),Math.round(5*scale),0x284F2449);
+-        Draw.icon(graphics,0xe7f4,Math.round(contentX()+300*scale),Math.round(panelY+12*scale),Math.round(15*scale),MUTED);
++        Draw.rect(graphics,panelX+panelW-140*scale,panelY+6*scale,27*scale,Math.round(27*scale),Math.round(5*scale),0x284F2449);
++        Draw.icon(graphics,0xe7f4,Math.round(panelX+panelW-134*scale),Math.round(panelY+12*scale),Math.round(15*scale),MUTED);
+     }
+ 
+     private void drawSidebar(DrawContext graphics, int mouseX, int mouseY) {
+@@ -203,10 +405,10 @@
+         Text.draw(graphics, LT.L17, panelX + 16 * size, panelY + 36 * size, 6.5f * size, MUTED);
+ 
+         int margin = Math.round(10 * size);
+-        int rowH = Math.round(20 * size);
++        int rowH = Math.round(18 * size);
+         int navX = panelX + margin;
+         int navW = sidebarW - 2 * margin;
+-        int y = panelY + Math.round(56 * size);
++        int y = panelY + Math.round(58 * size);
+ 
+         boolean modulesHov = mouseX >= navX && mouseX < navX + navW && mouseY >= y && mouseY < y + rowH;
+         Draw.rect(graphics, navX, y, navW, rowH, Math.round(6 * size), 0x667F286F);
+@@ -215,23 +417,30 @@
+         y += rowH + Math.round(5 * size);
+ 
+         for (Cat cat : CATS) {
+-            boolean sel = cat.category == selected && query.length() == 0;
++            boolean sel = page == 0 && cat.category == selected;
+             boolean hov = mouseX >= navX && mouseX < navX + navW && mouseY >= y && mouseY < y + rowH;
+             int count = 0;
+-            for (Module m : ModuleManager.all()) if (m.getCategory() == cat.category) count++;
+-            if (sel) Draw.rect(graphics, navX, y, navW, rowH, Math.round(6 * size), 0x405F174F);
++            for (Module m : cat.category == com.utilitymod.gui.Category.DONUT ? com.utilitymod.anubis.AnubisBridge.features() : ModuleManager.all()) if (m.getCategory() == cat.category) count++;
++            if (sel) {
++                Draw.rect(graphics, navX, y, navW, rowH, Math.round(3 * size), 0x2FFFFFFF);
++                Draw.rect(graphics, panelX+Math.round(3*scale), y+Math.round(4*scale), Math.max(1,Math.round(2*scale)), Math.round(10*scale), 0, CardGuiStyle.accent);
++            }
+             else if (hov) Draw.rect(graphics, navX, y, navW, rowH, Math.round(6 * size), Colors.withAlpha(INK, 0.05f));
+             float ty = y + rowH / 2f;
+             Draw.icon(graphics, NAV_ICONS[CATS.indexOf(cat)], navX+Math.round(8*scale), y+Math.round(5*scale), Math.round(10*scale), MUTED);
+             Text.draw(graphics, cat.label, navX + 26 * size, ty, 8f * size, sel ? INK : hov ? INK : MUTED);
+             String cs = Integer.toString(count);
+             Text.draw(graphics, cs, navX + navW - 8 * size - Text.width(cs, 6.5f * size), ty, 6.5f * size, MUTED);
+-            y += rowH + Math.round(4 * size);
+-        }
+-
+-        Text.draw(graphics, LT.L19, panelX+16*scale, panelY+239*scale, 9*scale, INK);
++            y += rowH + Math.round(3 * size);
++        }
++
++        Text.draw(graphics, LT.L19, panelX+16*scale, panelY+222*scale, 9*scale, INK);
+         for (int i=0;i<CLIENT_LINKS.length;i++) {
+-            float ly=panelY+(258+i*18)*scale;
++            float ly=panelY+(244+i*21)*scale;
++            if (page == i+1) {
++                Draw.rect(graphics, panelX+Math.round(10*scale), Math.round(ly-9*scale), sidebarW-Math.round(20*scale), Math.round(19*scale), Math.round(3*scale), 0x2FFFFFFF);
++                Draw.rect(graphics, panelX+Math.round(3*scale), Math.round(ly-5*scale), Math.max(1,Math.round(2*scale)), Math.round(10*scale), 0, CardGuiStyle.accent);
++            }
+             Draw.icon(graphics, i==0?dev.koifih.client.render.AdinIcon.CONFIGS:dev.koifih.client.render.AdinIcon.SETTINGS,
+                     Math.round(panelX+23*scale),Math.round(ly-5*scale),Math.round(10*scale),MUTED);
+             Text.draw(graphics,CLIENT_LINKS[i],panelX+40*scale,ly,8*scale,MUTED);
+@@ -239,9 +448,9 @@
+ 
+         // footer warning (matches the source screenshot's warning block)
+         float footY = panelY + panelH - 44 * size;
+-        Draw.icon(graphics, dev.koifih.client.render.AdinIcon.SETTINGS, (int) (panelX + 16 * size), (int) footY, (int) (12 * size), 0xFFE24A5F);
+-        Text.draw(graphics, LT.L20, panelX + 34 * size, footY + 6 * size, 7.5f * size, 0xFFE24A5F);
+-        List<String> lines = Text.wrap(LT.L21,
++        Draw.icon(graphics, dev.koifih.client.render.AdinIcon.SETTINGS, (int) (panelX + 16 * size), (int) footY, (int) (12 * size), 0xFFFFC34B);
++        Text.draw(graphics, "NOTE", panelX + 34 * size, footY + 6 * size, 7.5f * size, 0xFFFFC34B);
++        List<String> lines = Text.wrap("Local profiles save your setup. Right-click a module to edit its settings.",
+                 sidebarW - 30 * size, 6f * size, 3);
+         float ly = footY + 16 * size;
+         for (String line : lines) {
+@@ -252,20 +461,20 @@
+ 
+     private void drawSearch(DrawContext graphics, int mouseX, int mouseY, float delta) {
+         int h = Math.round(SEARCH_H_UNITS * scale);
+-        search.setWidth(Math.round(270 * scale));
++        search.setWidth(Math.max(1, contentW()-Math.round(162*scale)));
+         search.setHeight(h);
+         search.setX(Math.round(contentX() + 12 * scale));
+         search.setY(Math.round(panelY + 6 * scale));
+-        search.visible = sheetModule == null;
++        search.visible = sheetModule == null && page != 1;
+         if (search.visible) search.draw(graphics, mouseX, mouseY, delta);
+     }
+ 
+     private int cardsTop() {
+-        return panelY + Math.round(56 * scale);
++        return panelY + Math.round(92 * scale);
+     }
+ 
+     private void drawCards(DrawContext graphics, int mouseX, int mouseY, float delta) {
+-        int top = panelY + Math.round(56 * scale);
++        int top = panelY + Math.round(92 * scale);
+         int bottom = contentY() + contentH() - Math.round(14 * scale);
+         int gap = Math.round(CARD_GAP_UNITS * scale);
+         int cardH = Math.round(CARD_HEIGHT_UNITS * scale);
+@@ -274,7 +483,7 @@
+         List<Module> mods = visible();
+         float max = Math.max(0f, ((mods.size() + COLS - 1) / COLS) * (float) (cardH + gap) - gap - (bottom - top));
+         scrollGoal = Math.max(0f, Math.min(max, scrollGoal));
+-        scroll += (scrollGoal - scroll) * 0.35f;
++        scroll += (scrollGoal - scroll) * frameEase;
+         if (Math.abs(scrollGoal - scroll) < 0.5f) scroll = scrollGoal;
+ 
+         Scissor.clip(graphics, contentX(), top, contentW(), Math.max(0, bottom - top), () -> {
+@@ -304,10 +513,10 @@
+         float ts = approach(toggleShown.getOrDefault(m, on ? 1f : 0f), on ? 1f : 0f);
+         toggleShown.put(m, ts);
+ 
+-        int base = Colors.lerp(0x884E1848, 0xB58C277A, ht * 0.45f);
+-        int cardColor = on ? Colors.lerp(base, 0xB58C277A, 0.22f * ts + 0.08f) : base;
+-        Draw.rect(g, x, y, w, h, Math.round(CARD_RADIUS_UNITS * scale), 0x35E3A6D8);
+-        Draw.rect(g, x+1, y+1, w-2, h-2, Math.round(CARD_RADIUS_UNITS * scale), cardColor);
++        int base = Colors.lerp(0x284E1848, 0x507C366C, ht * 0.45f);
++        int cardColor = on ? Colors.lerp(base, 0x507C366C, 0.22f * ts + 0.08f) : base;
++        Draw.rect(g, x, y, w, h, Math.round(CardGuiStyle.cardRadius * scale), 0x25E3A6D8);
++        Draw.rect(g, x+1, y+1, w-2, h-2, Math.round(CardGuiStyle.cardRadius * scale), cardColor);
+         Draw.rect(g, x + Math.round(8 * scale), y, w - Math.round(16 * scale), 1, 0,
+                 Colors.withAlpha(0xFFFFFFFF, 0.05f + 0.05f * ht));
+ 
+@@ -332,13 +541,13 @@
+         int tx = x + w - toggleW - Math.round(12 * scale);
+         int ty = y + Math.round(11 * scale);
+         int th=Math.max(1,Math.round(17*scale));
+-        Draw.rect(g,tx,ty,toggleW,th,Math.round(3*scale),Colors.lerp(0x995C4B60,PINK,ts));
++        Draw.rect(g,tx,ty,toggleW,th,Math.round(3*scale),Colors.lerp(0x665C4B60,CardGuiStyle.accent,ts));
+         float thumb=11*scale, inset=3*scale;
+         Draw.rect(g,tx+inset+(toggleW-thumb-2*inset)*ts,ty+inset,thumb,Math.round(thumb),Math.round(2*scale),Colors.lerp(0xFFBEC9D7,0xFFFFFFFF,ts));
+     }
+ 
+-    private static float approach(float current, float target) {
+-        float next = current + (target - current) * 0.3f;
++    private float approach(float current, float target) {
++        float next = current + (target - current) * frameEase;
+         return Math.abs(target - next) < 0.002f ? target : next;
+     }
+ 
+@@ -501,7 +710,7 @@
+         int rowsH = bottom - top;
+         int content = Math.max(rowStride, sheetRows.size() * rowStride);
+         sheetScrollGoal = Math.max(0f, Math.min(Math.max(0f, content - rowsH), sheetScrollGoal));
+-        sheetScroll += (sheetScrollGoal - sheetScroll) * 0.35f;
++        sheetScroll += (sheetScrollGoal - sheetScroll) * frameEase;
+         if (Math.abs(sheetScrollGoal - sheetScroll) < 0.5f) sheetScroll = sheetScrollGoal;
+ 
+         Draw.rect(g, sx, sy, sheetW, sheetH, Math.round(8 * scale), 0xF030102A);
+@@ -564,6 +773,22 @@
+     @Override
+     public boolean mouseClicked(Click event, boolean doubleClick) {
+         if (closing) return true;
++        pointerHeld = true;
++        if (sheetModule == null && page != 0) {
++            if (page == 4 && event.button() == 1) {
++                // reference law: right click on the options page resets the open key
++                dev.koifih.client.input.Keybinds.setOpenKeyCode(GLFW.GLFW_KEY_RIGHT_SHIFT);
++                GuiConfig.markDirty();
++                return true;
++            }
++            if (page == 1 && profileInput.isMouseOver(event.x(),event.y())) {
++                focus=profileInput; profileInput.onClick(event,doubleClick); return true;
++            }
++            for (Hotspot h : hotspots) if (h.contains(event.x(),event.y())) {
++                if (event.button()==0) { h.action.accept(event.x(),event.y()); if(h.drag) dragging=h; }
++                return true;
++            }
++        }
+         if (sheetModule != null) {
+             for(Control c:sheetControls) if(c instanceof Keybind k && k.captureMouse(event)) return true;
+             // open dropdown lists first, then rows/controls, then outside-click close
+@@ -594,21 +819,22 @@
+         // sidebar navigation
+         if (event.x() >= panelX && event.x() < contentX()) {
+             if(event.button()==0) for(int i=0;i<CLIENT_LINKS.length;i++) {
+-                float ly=panelY+(249+i*18)*scale;
+-                if(event.y()>=ly && event.y()<ly+18*scale) {
+-                    MCA.setScreen(DropdownGui.openSection(new String[]{LT.L33,LT.L34,LT.L35,LT.L4}[i]));
++                float ly=panelY+(235+i*21)*scale;
++                if(event.y()>=ly && event.y()<ly+19*scale) {
++                    setPage(i+1);
+                     return true;
+                 }
+             }
+             float size = scale;
+-            int rowH = Math.round(20 * size);
+-            int y = panelY + Math.round(56 * size) + rowH + Math.round(5 * size);
++            int rowH = Math.round(18 * size);
++            int y = panelY + Math.round(58 * size) + rowH + Math.round(5 * size);
+             int margin = Math.round(10 * size);
+             int navX = panelX + margin;
+             int navW = sidebarW - 2 * margin;
+             if (event.x() >= navX && event.x() < navX + navW) {
+                 for (Cat cat : CATS) {
+                     if (event.y() >= y && event.y() < y + rowH) {
++                        setPage(0);
+                         selected = cat.category;
+                         query.setLength(0);
+                         focus = null;
+@@ -616,11 +842,12 @@
+                         scrollGoal = 0f;
+                         return true;
+                     }
+-                    y += rowH + Math.round(4 * size);
++                    y += rowH + Math.round(3 * size);
+                 }
+             }
+             return true;
+         }
++        if (page != 0) return true;
+         // cards
+         if (event.button() == 0 || event.button() == 1) {
+             Module hit = cardAt(event.x(), event.y());
+@@ -669,7 +896,7 @@
+     }
+ 
+     private int cardY(Module target, int cardH, int gap) {
+-        int top = panelY + Math.round(56 * scale);
++        int top = panelY + Math.round(92 * scale);
+         List<Module> mods = visible();
+         for (int i = 0; i < mods.size(); i++) {
+             if (mods.get(i) == target) {
+@@ -681,7 +908,7 @@
+ 
+     private Module cardAt(double mx, double my) {
+         if(mx<contentX() || mx>=panelX+panelW || my<cardsTop() || my>=contentY()+contentH()-Math.round(14*scale)) return null;
+-        int top = panelY + Math.round(56 * scale);
++        int top = panelY + Math.round(92 * scale);
+         int gap = Math.round(CARD_GAP_UNITS * scale);
+         int cardH = Math.round(CARD_HEIGHT_UNITS * scale);
+         int gridW = contentW() - Math.round(24 * scale);
+@@ -697,6 +924,8 @@
+ 
+     @Override
+     public boolean mouseScrolled(double x, double y, double dx, double dy) {
++        if (x < contentX() || x >= panelX+panelW || y < panelY+48*scale || y >= panelY+panelH) return false;
++        if (page != 0) { pageScroll=Math.max(0,Math.min(pageMax,pageScroll-(float)dy*25*scale)); return true; }
+         if (sheetModule != null) {
+             sheetScrollGoal += dy < 0 ? 24 * scale : -24 * scale;
+             return true;
+@@ -710,6 +939,7 @@
+ 
+     @Override
+     public boolean mouseDragged(Click event, double dx, double dy) {
++        if (dragging!=null) { dragging.action.accept(event.x(),event.y()); return true; }
+         if (sheetModule != null) {
+             for (Control c : sheetControls) if (c.active && c.visible) c.onDrag(event, dx, dy);
+             return true;
+@@ -719,6 +949,8 @@
+ 
+     @Override
+     public boolean mouseReleased(Click event) {
++        pointerHeld=false;
++        if(dragging!=null) { dragging=null; GuiConfig.markDirty(); if(Math.abs(fitScale()-scale)>.001f)init(); return true; }
+         if (sheetModule != null) {
+             for (Control c : sheetControls) if (c.active && c.visible) c.onRelease(event);
+             return true;
+@@ -732,6 +964,14 @@
+ 
+     public boolean keyPressed(KeyInput event) {
+         if (closing) return true;
++        if(bindingMenu || bindingModule!=null) {
++            if(event.key()!=GLFW.GLFW_KEY_ESCAPE) {
++                if(bindingMenu) dev.koifih.client.input.Keybinds.setOpenKeyCode(event.key());
++                else ModuleBinds.set(bindingModule,event.key()==GLFW.GLFW_KEY_BACKSPACE || event.key()==GLFW.GLFW_KEY_DELETE ? -1 : event.key());
++            }
++            bindingMenu=false; bindingModule=null; GuiConfig.markDirty(); return true;
++        }
++        if(event.key()==GLFW.GLFW_KEY_F && (event.modifiers() & GLFW.GLFW_MOD_CONTROL)!=0 && search.visible) { focus=search; search.setFocused(true); return true; }
+         Control focused = focusedControl();
+         if (focused != null && focused.capturesInput() && focused.keyPressed(event)) return true;
+         if (sheetModule != null) {
+--- a/src/client/java/com/utilitymod/gui/GuiConfig.java
++++ b/src/client/java/com/utilitymod/gui/GuiConfig.java
+@@ -209,6 +209,7 @@
+ 
+             JsonObject o = GSON.fromJson(json, JsonObject.class);
+             if (o == null) return;
++            if (o.has("cardVisuals") && o.get("cardVisuals").isJsonObject()) CardGuiStyle.load(o.getAsJsonObject("cardVisuals"));
+             if (o.has(LT.L12)) Theme.setMode(Theme.Mode.valueOf(o.get(LT.L12).getAsString()));
+             if (o.has(LT.L13)) Theme.setAccent(o.get(LT.L13).getAsInt());
+             if (o.has(LT.L14)) Lang.set(Lang.Language.valueOf(o.get(LT.L14).getAsString()));
+@@ -270,6 +271,7 @@
+     public static void save() {
+         try {
+             JsonObject o = new JsonObject();
++            o.add("cardVisuals", CardGuiStyle.save());
+             o.addProperty(LT.L12, Theme.mode().name());
+             o.addProperty(LT.L13, Theme.accentRgb());
+             o.addProperty(LT.L14, Lang.current().name());
+--- a/src/client/java/com/utilitymod/echo/render/GlassRenderer.java
++++ b/src/client/java/com/utilitymod/echo/render/GlassRenderer.java
+@@ -76,6 +76,8 @@
+     /** program -> uniform name -> location (glGetUniformLocation is a driver round trip). */
+     private static final java.util.Map<Integer, java.util.Map<String, Integer>> LOCATIONS = new java.util.HashMap<>();
+     private static int layerW, layerH;
++    /** one-shot gate diag keys (plain literals, diag lane) */
++    private static final java.util.Map<String, Boolean> WARNED = new java.util.HashMap<>();
+ 
+     private GlassRenderer() {}
+ 
+@@ -85,6 +87,57 @@
+ 
+     public static void queue(Panel p) {
+         if (!failed && p.w() > 1 && p.h() > 1 && p.alpha() > 0.01f) queue.add(p);
++    }
++
++    /**
++     * Flushes the queued card-shell panels with a scoped, static tinted-glass material.
++     * Call on the render thread before drawing labels and controls. The HUD's global
++     * settings callback is intentionally suppressed for this flush and restored even
++     * when shader setup, resource creation, or GUI submission fails. Queue only the
++     * card shell before this call; unrelated HUD panels must be flushed separately.
++     *
++     * @param tint RGB/ARGB material color (alpha comes from each queued Panel)
++     * @param blur Gaussian blur radius, clamped to 0..24; non-finite values use 10
++     * @param reducedMotion reduces optical displacement; TINTED itself has no time animation
++     */
++    public static void flushCard(DrawContext ctx, int tint, float blur, boolean reducedMotion) {
++        Runnable previousSettings = settings;
++        Mode previousMode = mode;
++        int previousIterations = blurIterations;
++        float previousRadius = blurRadius, previousDownscale = blurDownscale;
++        float previousNoise = noise, previousRefraction = refractionPower;
++        float previousR = tintR, previousG = tintG, previousB = tintB;
++        float previousStrength = tintStrength, previousChroma = chroma, previousDarkness = darkness;
++        try {
++            settings = null;
++            mode = Mode.TINTED;
++            blurRadius = Float.isFinite(blur) ? Math.max(0f, Math.min(24f, blur)) : 10f;
++            blurIterations = blurRadius > 0.5f ? 2 : 0;
++            blurDownscale = 0.5f;
++            noise = 0.012f;
++            refractionPower = reducedMotion ? 0.08f : 0.32f;
++            tintR = ((tint >>> 16) & 255) / 255f;
++            tintG = ((tint >>> 8) & 255) / 255f;
++            tintB = (tint & 255) / 255f;
++            tintStrength = 0.32f;
++            chroma = reducedMotion ? 0f : 0.0008f;
++            darkness = 0.08f;
++            flush(ctx);
++        } finally {
++            mode = previousMode;
++            blurIterations = previousIterations;
++            blurRadius = previousRadius;
++            blurDownscale = previousDownscale;
++            noise = previousNoise;
++            refractionPower = previousRefraction;
++            tintR = previousR;
++            tintG = previousG;
++            tintB = previousB;
++            tintStrength = previousStrength;
++            chroma = previousChroma;
++            darkness = previousDarkness;
++            settings = previousSettings;
++        }
+     }
+ 
+     /** Renders all queued panels and draws the glass layer into the GUI; clears the queue. */
+@@ -98,7 +151,13 @@
+         Runnable s = settings;
+         if (s != null) s.run();
+         MinecraftClient mc = MinecraftClient.getInstance();
+-        if (!(mc.getFramebuffer().getColorAttachment() instanceof GlTexture main)) return;
++        var mainAttachment = mc.getFramebuffer().getColorAttachment();
++        int mainId = mainAttachment instanceof GlTexture main ? main.getGlId() : glIdOf(mainAttachment);
++        if (mainId <= 0) {
++            // 1.21.x pipeline wrappers can hide the gl handle; diag once and bail
++            warnGate(LT.L50);
++            return;
++        }
+         int fw = mc.getFramebuffer().textureWidth, fh = mc.getFramebuffer().textureHeight;
+         int sw = ctx.getScaledWindowWidth(), sh = ctx.getScaledWindowHeight();
+         try {
+@@ -106,8 +165,11 @@
+             slot = nextLayer;
+             nextLayer = (nextLayer + 1) % LAYERS;
+             NativeImageBackedTexture layer = layer(slot, fw, fh);
+-            if (!(layer.getGlTexture() instanceof GlTexture out)) return;
+-            render(main.getGlId(), out.getGlId(), fw, fh, sw, sh, panels);
++            if (!(layer.getGlTexture() instanceof GlTexture out)) {
++                warnGate(LT.L51);
++                return;
++            }
++            render(mainId, out.getGlId(), fw, fh, sw, sh, panels);
+         } catch (Throwable t) {
+             failed = true;
+             UtilityMod.LOGGER.warn(LT.L1, t.toString());
+@@ -392,6 +454,33 @@
+     private static void uniform1f(int p, String n, float v) { int l = loc(p, n); if (l >= 0) GL20.glUniform1f(l, v); }
+     private static void uniform2f(int p, String n, float a, float b) { int l = loc(p, n); if (l >= 0) GL20.glUniform2f(l, a, b); }
+     private static void uniform3f(int p, String n, float a, float b, float c) { int l = loc(p, n); if (l >= 0) GL20.glUniform3f(l, a, b, c); }
++
++    /** Reflects the gl handle off a non-GlTexture attachment (1.21.x pipeline wrappers). */
++    private static int glIdOf(Object attachment) {
++        if (attachment == null) return -1;
++        for (String m : new String[] {"glId", "getGlId"}) {
++            try {
++                Object v = attachment.getClass().getMethod(m).invoke(attachment);
++                if (v instanceof Integer i) return i;
++            } catch (Throwable ignored) {}
++        }
++        try {
++            java.lang.reflect.Field f = attachment.getClass().getDeclaredField("glId");
++            f.setAccessible(true);
++            return f.getInt(attachment);
++        } catch (Throwable ignored) {}
++        return -1;
++    }
++
++    /** One-shot gate diag: the same key never logs twice, so frame-time gates stay quiet after the first. */
++    private static void warnGate(String why) {
++        if (WARNED.putIfAbsent(why, Boolean.TRUE) == null) UtilityMod.LOGGER.warn(LT.L1, why);
++    }
++
++    /** Card-panel fallback diag: separates the glass toggle from a renderer gate. */
++    public static void reportCardGate(boolean styleGlass) {
++        if (!styleGlass) warnGate(LT.L52);
++    }
+ 
+ 
+     // cloak literals (cloak=PUA carrier / plain=functional decode)
+@@ -445,5 +534,8 @@
+         static final String L47 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0x1cfd,0xd245,0x403a,0x96b5,0x07e1,0x5ecd,0x9a8a,0x8eac}, new char[]{0x96d8,0x4053,0x0792,0x9af9,0xd22c,0x5ea3,0x8ecb,0x1cdd}).plainString();
+         static final String L48 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0x9182,0xc03f,0xb5b0,0x6c51,0xfbc7,0xcc3d,0x2415,0xdf8d,0x1e90,0x5600,0x2220,0x032e,0xa007,0x31fc,0x4d4e,0x9627,0x5f0c,0x87bc,0x6b01,0xab4f,0x877e,0x202c,0x351a,0x01ba,0x4f16,0x552f,0x578e,0x155b,0xf751,0xd5da,0x77bd,0xffb6,0xcd1b,0x6ac6,0x2d3e,0x2dc8,0x3669,0xc3ed,0x49e6,0xd65e,0xc122,0xe54e,0x21ab}, new char[]{0xc3b6,0x6c04,0x2461,0x5f65,0xd5b6,0x4d27,0xc156,0xc046,0x564d,0x224f,0x153f,0xffeb,0xcc1d,0x57c9,0x498a,0x77dc,0x91f1,0x870d,0xd67e,0x4f65,0x21c3,0x6aa7,0xdfe9,0xb5d5,0x318e,0xab6f,0x2db3,0xa07a,0x879c,0x01cf,0x3574,0x555d,0xe52b,0xfba6,0x2048,0x3608,0x6b63,0x964b,0x034b,0xcd21,0x2d1e,0x1eeb,0xf72c}).plainString();
+         static final String L49 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0x8873,0xf05d,0xb9cf,0xd6fe,0x2b1d,0x4264,0x4d66,0x44aa,0x3078,0x0e31,0x8067,0x3785,0x4ad5,0xfaf0,0xcd98,0xc81e,0xb0ca,0x8e9b,0x67c2,0x2bb8,0x3092,0xcb4e,0x56af,0xa7e9,0x2134,0xd435,0x2907,0x0ed1,0x63a0,0x6ae7,0x0d00,0xb6da,0x33dc,0xf0ce,0xe9bd,0xca62,0xcc62,0x5205,0xa895,0xb5a0,0xd928,0xa0e6,0xb310,0x68bd,0xda8a,0xe662,0x46b7}, new char[]{0xdad1,0x0d55,0x2973,0xb6b3,0xa08a,0xcb27,0xb0be,0xf0b7,0x30df,0x8ef4,0xd69a,0x37d8,0xcdb8,0xc859,0xd944,0xe603,0xa79a,0xf02e,0x4244,0x0e42,0x4abd,0xa8f4,0xcc06,0x46d2,0xb9bd,0x5225,0x0eaa,0x4d1b,0x33fc,0x2b7e,0xb5cf,0x800a,0x2bc8,0x3011,0x68d1,0xd450,0xfad0,0x56c9,0xb371,0xca0b,0x6a8b,0x63c5,0x67a6,0x210e,0x448a,0xe9c6,0x880e}).plainString();
++        static final String L50 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0xd92d,0x37db,0x2a9e,0x82cb,0xa42f,0x04a5,0xebc1,0x50da,0xc59b,0xb98f,0x1c94,0x4a18,0x11e2,0xa8b9,0x3356,0x6555,0x76b8,0x3ff5,0x0b29,0x8aee,0x5f69,0x9626,0xfce8,0xb16d,0xf04a,0x2279,0xbc04,0xd11c}, new char[]{0xd17a,0xa8cb,0x2218,0xbc69,0x37be,0xb10f,0x0b5c,0x82ad,0x1cf2,0x9643,0x1190,0xebe1,0x6536,0xfc87,0x76d4,0xf025,0x4a6a,0xc5bb,0x5f08,0xd959,0x50ae,0x2aff,0xa44c,0x3f9d,0xb9e2,0x3333,0x8a80,0x04d1}).plainString();
++        static final String L51 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0xf051,0xc5c9,0xb12f,0xbc1a,0x82cc,0x37cd,0x4a1f,0x0b30,0x76ac,0x2279,0x11e2,0x5f6d,0x1c8b,0x9626,0xebc1,0xa8a7,0xd11d,0x6542,0xfce2}, new char[]{0xd17a,0xa8cb,0x2218,0xbc69,0x37be,0xb10f,0x0b5c,0x82ad,0x1cf2,0x9643,0x1190,0xebe1,0x6536,0xfc87,0x76d4,0xf025,0x4a6a,0xc5bb,0x5f08}).plainString();
++        static final String L52 = new com.utilitymod.echo.utils.EncryptedString(new char[]{0x50c9,0xd938,0x3ffb,0xd119,0xeb86,0xa423,0x226a,0x11b0,0xb984,0x2adf,0x379e,0x4a4a,0x76a7,0xbc0d,0x5f64,0xa8aa,0xc5dd,0x962f,0x0b3d,0x82c3,0xfce6,0x655a,0xf056,0x1c97,0xb17f}, new char[]{0xd17a,0xa8cb,0x2218,0xbc69,0x37be,0xb10f,0x0b5c,0x82ad,0x1cf2,0x9643,0x1190,0xebe1,0x6536,0xfc87,0x76d4,0xf025,0x4a6a,0xc5bb,0x5f08,0xd959,0x50ae,0x2aff,0xa44c,0x3f9d,0xb9e2}).plainString();
+     }
+ }
+--- a/src/client/java/com/utilitymod/gui/CardGuiMotion.java
++++ b/src/client/java/com/utilitymod/gui/CardGuiMotion.java
+@@ -0,0 +1,74 @@
++package com.utilitymod.gui;
++
++/** Bounded, frame-rate independent edge pressure for the card GUI's actual layout origin. */
++public final class CardGuiMotion {
++    private static final float MAX_PUSH = 5f;
++    private static final float EDGE_BAND = 28f;
++    private static final float OUTSIDE_HALO = 12f;
++    private static final double SPRING_FREQUENCY = 16.0;
++    private static final double MAX_STEP = 1.0 / 120.0;
++    private double offsetX, offsetY, velocityX, velocityY;
++
++    public float x() { return (float) offsetX; }
++    public float y() { return (float) offsetY; }
++
++    public void reset() {
++        offsetX = offsetY = velocityX = velocityY = 0.0;
++    }
++
++    /** Coordinates are scaled GUI pixels; targets always use the stationary base rectangle. */
++    public void update(float mouseX, float mouseY, float baseX, float baseY,
++                       float width, float height, float scale, float dt,
++                       boolean enabled, boolean frozen) {
++        if (!enabled || !Float.isFinite(scale) || scale <= 0f
++                || !Float.isFinite(width) || !Float.isFinite(height) || width <= 0f || height <= 0f
++                || !Float.isFinite(baseX) || !Float.isFinite(baseY)) {
++            reset();
++            return;
++        }
++        if (frozen) {
++            // Preserve hitboxes throughout a captured drag, without storing a release impulse.
++            velocityX = velocityY = 0.0;
++            return;
++        }
++        if (!Float.isFinite(dt) || dt <= 0f) return;
++        double targetX = 0.0, targetY = 0.0;
++        float halo = OUTSIDE_HALO * scale;
++        if (Float.isFinite(mouseX) && Float.isFinite(mouseY)
++                && mouseX >= baseX - halo && mouseX <= baseX + width + halo
++                && mouseY >= baseY - halo && mouseY <= baseY + height + halo) {
++            targetX = pressure(mouseX - baseX, width, scale) * MAX_PUSH * scale;
++            targetY = pressure(mouseY - baseY, height, scale) * MAX_PUSH * scale;
++        }
++        double remaining = Math.min(0.05, dt);
++        while (remaining > 1.0E-8) {
++            double step = Math.min(MAX_STEP, remaining);
++            double decay = Math.exp(-SPRING_FREQUENCY * step);
++            // Exact critically damped spring integration; no unstable explicit Euler step.
++            double dx = offsetX - targetX;
++            double dy = offsetY - targetY;
++            double ax = velocityX + SPRING_FREQUENCY * dx;
++            double ay = velocityY + SPRING_FREQUENCY * dy;
++            offsetX = targetX + (dx + ax * step) * decay;
++            offsetY = targetY + (dy + ay * step) * decay;
++            velocityX = (velocityX - SPRING_FREQUENCY * ax * step) * decay;
++            velocityY = (velocityY - SPRING_FREQUENCY * ay * step) * decay;
++            remaining -= step;
++        }
++        double limit = MAX_PUSH * scale;
++        if (Math.abs(offsetX) > limit) { offsetX = Math.copySign(limit, offsetX); velocityX = 0.0; }
++        if (Math.abs(offsetY) > limit) { offsetY = Math.copySign(limit, offsetY); velocityY = 0.0; }
++    }
++
++    private static float pressure(float coordinate, float length, float scale) {
++        float left = edgeWeight(coordinate, scale);
++        float right = edgeWeight(length - coordinate, scale);
++        return left - right;
++    }
++
++    private static float edgeWeight(float inwardDistance, float scale) {
++        float reach = (inwardDistance < 0f ? OUTSIDE_HALO : EDGE_BAND) * scale;
++        float weight = Math.max(0f, 1f - Math.abs(inwardDistance) / reach);
++        return weight * weight * (3f - 2f * weight);
++    }
++}
+--- a/src/client/java/com/utilitymod/gui/CardGuiStyle.java
++++ b/src/client/java/com/utilitymod/gui/CardGuiStyle.java
+@@ -0,0 +1,34 @@
++package com.utilitymod.gui;
++
++import com.google.gson.JsonObject;
++
++/** Persisted Cards-only visual tokens; no shared HUD shader settings are changed. */
++public final class CardGuiStyle {
++    public static int accent = 0xFFCE52B3, background = 0xFF8C135E, back = 0xFF3C0737;
++    public static int blur = 20, radius = 22, cardRadius = 13, size = 100, gravity = 100;
++    public static boolean glass = true, motion = true;
++    private CardGuiStyle() {}
++    public static JsonObject save() {
++        JsonObject o = new JsonObject();
++        o.addProperty("accent", accent); o.addProperty("background", background); o.addProperty("back", back);
++        o.addProperty("blur", blur); o.addProperty("radius", radius); o.addProperty("cardRadius", cardRadius);
++        o.addProperty("size", size); o.addProperty("gravity", gravity); o.addProperty("glass", glass); o.addProperty("motion", motion);
++        return o;
++    }
++    private static int number(JsonObject o, String key, int fallback, int min, int max) {
++        try { return o.has(key) ? Math.max(min, Math.min(max, o.get(key).getAsInt())) : fallback; }
++        catch (RuntimeException ex) { return fallback; }
++    }
++    private static boolean flag(JsonObject o, String key, boolean fallback) {
++        try { return o.has(key) ? o.get(key).getAsBoolean() : fallback; }
++        catch (RuntimeException ex) { return fallback; }
++    }
++    public static void load(JsonObject o) {
++        accent = 0xFF000000 | number(o,"accent",accent,Integer.MIN_VALUE,Integer.MAX_VALUE);
++        background = 0xFF000000 | number(o,"background",background,Integer.MIN_VALUE,Integer.MAX_VALUE);
++        back = 0xFF000000 | number(o,"back",back,Integer.MIN_VALUE,Integer.MAX_VALUE);
++        blur=number(o,"blur",blur,0,30); radius=number(o,"radius",radius,4,60);
++        cardRadius=number(o,"cardRadius",cardRadius,2,40); size=number(o,"size",size,70,120);
++        gravity=number(o,"gravity",gravity,0,100); glass=flag(o,"glass",glass); motion=flag(o,"motion",motion);
++    }
++}

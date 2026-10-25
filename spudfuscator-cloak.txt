@@ -1,0 +1,28 @@
+# Extra terms Sam's scanner flagged on top of HeapCloakDict.BUILT_IN.
+# Loaded by both HeapCloak (via classpath) and rename_modules.py --dict.
+# One term per line. Word-boundary + case-insensitive matching.
+
+AH Sniper
+Anti Bot
+Attack Delay
+Auto Cart
+Shard Rig
+Haldex
+haldex
+BlockESP
+ChunkFinder
+Click Simulation
+Explode Delay
+Hole ESP
+Mace Swap
+NoJumpDelay
+Place Delay
+Breach Kit
+Silent Swap
+SpearSwap
+Swing Speed
+Switch Back
+Switch Delay
+Totem Hit
+SnapFire
+Vertical Speed

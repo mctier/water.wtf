@@ -1,0 +1,213 @@
+{
+  "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU/PCIe/SSE2",
+  "vendor": "NVIDIA Corporation",
+  "version": "3.3.0 NVIDIA 617.14",
+  "scope": "Actual GLSL compiled and rendered in standalone WGL context; no Minecraft text/UI or Java GL-state integration executed.",
+  "tests": [
+    {
+      "label": "baseline",
+      "resolution": [
+        1280,
+        720
+      ],
+      "scene": "checker-gradient",
+      "gpu_panel_only_median_ms": 0.017408,
+      "gpu_panel_only_max_ms": 0.03888,
+      "top": [
+        0.59968101978302,
+        0.5262760519981384,
+        0.5861859917640686
+      ],
+      "lower_left": [
+        0.5654960870742798,
+        0.3741498589515686,
+        0.548667311668396
+      ],
+      "lower_right": [
+        0.6791571974754333,
+        0.3962012529373169,
+        0.6190410852432251
+      ],
+      "alpha_center": 0.9200000166893005,
+      "finite": "PASS",
+      "rounded_mask": "PASS"
+    },
+    {
+      "label": "legacy",
+      "resolution": [
+        1280,
+        720
+      ],
+      "scene": "checker-gradient",
+      "gpu_panel_only_median_ms": 0.01744,
+      "gpu_panel_only_max_ms": 0.035712,
+      "top": [
+        0.59968101978302,
+        0.5262760519981384,
+        0.5861859917640686
+      ],
+      "lower_left": [
+        0.5654960870742798,
+        0.3741498589515686,
+        0.548667311668396
+      ],
+      "lower_right": [
+        0.6791571974754333,
+        0.3962012529373169,
+        0.6190410852432251
+      ],
+      "alpha_center": 0.9200000166893005,
+      "finite": "PASS",
+      "rounded_mask": "PASS"
+    },
+    {
+      "label": "cards",
+      "resolution": [
+        1280,
+        720
+      ],
+      "scene": "checker-gradient",
+      "gpu_panel_only_median_ms": 0.017472,
+      "gpu_panel_only_max_ms": 0.035488,
+      "top": [
+        0.3171950578689575,
+        0.09377685189247131,
+        0.301483690738678
+      ],
+      "lower_left": [
+        0.6865010261535645,
+        0.06366347521543503,
+        0.48571908473968506
+      ],
+      "lower_right": [
+        0.2219686210155487,
+        0.052266236394643784,
+        0.20526264607906342
+      ],
+      "alpha_center": 0.9200000166893005,
+      "finite": "PASS",
+      "rounded_mask": "PASS"
+    },
+    {
+      "label": "cards",
+      "resolution": [
+        1280,
+        720
+      ],
+      "scene": "bright-flat",
+      "gpu_panel_only_median_ms": 0.017328,
+      "gpu_panel_only_max_ms": 0.032864,
+      "top": [
+        0.3559993803501129,
+        0.10432992875576019,
+        0.3328617215156555
+      ],
+      "lower_left": [
+        0.7253053784370422,
+        0.0886879488825798,
+        0.5170970559120178
+      ],
+      "lower_right": [
+        0.23525291681289673,
+        0.07039003074169159,
+        0.2207145392894745
+      ],
+      "alpha_center": 0.9200000166893005,
+      "finite": "PASS",
+      "rounded_mask": "PASS",
+      "directional_gradient": "PASS"
+    },
+    {
+      "label": "cards",
+      "resolution": [
+        854,
+        480
+      ],
+      "scene": "bright-flat",
+      "gpu_panel_only_median_ms": 0.008864,
+      "gpu_panel_only_max_ms": 0.011584,
+      "top": [
+        0.35577651858329773,
+        0.10433746874332428,
+        0.3327386975288391
+      ],
+      "lower_left": [
+        0.7253183126449585,
+        0.08868801593780518,
+        0.517107367515564
+      ],
+      "lower_right": [
+        0.23505693674087524,
+        0.07036452740430832,
+        0.22055061161518097
+      ],
+      "alpha_center": 0.9200000166893005,
+      "finite": "PASS",
+      "rounded_mask": "PASS",
+      "directional_gradient": "PASS"
+    },
+    {
+      "label": "cards",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scene": "bright-flat",
+      "gpu_panel_only_median_ms": 0.038672,
+      "gpu_panel_only_max_ms": 0.041856,
+      "top": [
+        0.35557910799980164,
+        0.10434415936470032,
+        0.3326297700405121
+      ],
+      "lower_left": [
+        0.7253034114837646,
+        0.088687963783741,
+        0.5170956254005432
+      ],
+      "lower_right": [
+        0.2354278415441513,
+        0.07040981203317642,
+        0.22085915505886078
+      ],
+      "alpha_center": 0.9200000166893005,
+      "finite": "PASS",
+      "rounded_mask": "PASS",
+      "directional_gradient": "PASS"
+    },
+    {
+      "label": "cards",
+      "resolution": [
+        2560,
+        1440
+      ],
+      "scene": "bright-flat",
+      "gpu_panel_only_median_ms": 0.107072,
+      "gpu_panel_only_max_ms": 0.494048,
+      "top": [
+        0.35577651858329773,
+        0.10433746874332428,
+        0.3327386975288391
+      ],
+      "lower_left": [
+        0.7252991795539856,
+        0.08868793398141861,
+        0.517092227935791
+      ],
+      "lower_right": [
+        0.2354685515165329,
+        0.07041562348604202,
+        0.2208935022354126
+      ],
+      "alpha_center": 0.9200000166893005,
+      "finite": "PASS",
+      "rounded_mask": "PASS",
+      "directional_gradient": "PASS"
+    }
+  ],
+  "baseline_compile": "PASS",
+  "legacy_compile": "PASS",
+  "cards_compile": "PASS",
+  "legacy_max_absolute_rgba_delta": 0.0,
+  "shader_sha256": "0ec2e1a0cde3d1c7d3d6452fee0378d4bcf655f209d8c4317ebfe729aece78a2"
+}

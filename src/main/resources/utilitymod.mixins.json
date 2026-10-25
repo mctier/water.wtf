@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.utilitymod.mixins",
+  "compatibilityLevel": "JAVA_21",
+  "refmap": "utilitymod.refmap.json",
+  "client": [
+    "NoHurtCamMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -1,0 +1,44 @@
+Changed branch: uCardMaterial > 0.5. lensPixels 4->6 GUI px, pigmentWeight minus rim*.20, innerGlow exponential6px cut off at18px.
+Paths:
+C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\glass-edges-20261022\MODIFIED_FILE.frag
+C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\glass-edges-20261022\DIFF_FILE.patch
+C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\glass-edges-20261022\VERIFICATION.txt
+C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\glass-edges-20261022\ROLLBACK.sh
+Original SHA256: dedd44c7efd13bb76fd24499f09d47c718bf706f2d73a90d19f147d6deb96ae6
+BASELINE command: artifacts/glass-gradient-20261022/test-venv/Scripts/python.exe artifacts/glass-edges-20261022/shader-test/verify_shader.py
+Input: saved prior shader; checker-gradient and flat bright scenes. Exit0.
+PASS: actual baseline and modified shaders compile/link on NVIDIA GeForce RTX 5060 Laptop GPU/PCIe/SSE2
+PASS: legacy output preserved, max RGBA difference 0.0
+PASS: 4 resolutions, finite output, transparent outside/rounded corners, interior alpha, magenta pool and dark-right gradient
+baseline [1280, 720] checker-gradient GPU median ms 0.0173
+legacy [1280, 720] checker-gradient GPU median ms 0.0173
+cards [1280, 720] checker-gradient GPU median ms 0.0174
+cards [1280, 720] bright-flat GPU median ms 0.0173
+cards [854, 480] bright-flat GPU median ms 0.0089
+cards [1920, 1080] bright-flat GPU median ms 0.0391
+cards [2560, 1440] bright-flat GPU median ms 0.1076
+
+MODIFIED command: artifacts/glass-gradient-20261022/test-venv/Scripts/python.exe artifacts/glass-edges-20261022/shader-test/verify_shader.py
+Input: new shader and old shader; four resolutions, interior and alpha comparison. Exit0.
+PASS: actual baseline and modified shaders compile/link on NVIDIA GeForce RTX 5060 Laptop GPU/PCIe/SSE2
+PASS: legacy output preserved, max RGBA difference 0.0
+PASS: 4 resolutions, finite output, transparent outside/rounded corners, interior alpha, magenta pool and dark-right gradient
+baseline [1280, 720] checker-gradient GPU median ms 0.0174
+legacy [1280, 720] checker-gradient GPU median ms 0.0174
+cards [1280, 720] checker-gradient GPU median ms 0.0175
+cards [1280, 720] bright-flat GPU median ms 0.0173
+cards [854, 480] bright-flat GPU median ms 0.0089
+cards [1920, 1080] bright-flat GPU median ms 0.0387
+cards [2560, 1440] bright-flat GPU median ms 0.1071
+PASS: edge-only regression; interior max delta 5.960464477539063e-08 alpha max delta 0.0
+
+ROLLBACK command: python "C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\glass-edges-20261022\rollback.py" "C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\glass-edges-20261022\rollback-test"
+Input: independent modified copy. Exit0.
+ROLLBACK PASS: original shader hash and 4px edge material restored
+
+Original material restored on test copy only; live shader remains modified. Shell wrapper invokes tested Python helper.
+Offscreen preview inspected; no in-game capture of this build yet. Tests use1:1 GUI-to-framebuffer scale.
+
+BUILD: gradle.bat build --offline -Parchives_base_name=utilitymod-glass-edges --console=plain
+Result: BUILD SUCCESSFUL in 1m; exit0. Packaged shader reopened and matches MODIFIED_FILE.
+JAR: C:\Users\fakemoon\Documents\Default Project\utility-mod\build\libs\utilitymod-glass-edges-1.0.0.jar

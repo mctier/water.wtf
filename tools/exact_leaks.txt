@@ -1,0 +1,61 @@
+plain	2	'ᴀʙᴄᴅᴇꜰɢʜɪᴊᴋʟᴍɴᴏᴘʀѕꜱᴛᴜᴠᴡʏᴢ'	ServerText.java` (33):17
+plain	8	'None'	SpearLungeModule.java` (1):140
+plain	2	'mine'	AutoBlockMiner.java` (63):176
+plain	2	'goto'	AutoBlockMiner.java` (63):176
+plain	1	'stop'	AutoBlockMiner.java` (63):221
+plain	1	'cancel'	AutoBlockMiner.java` (63):221
+plain	1	'pause'	AutoBlockMiner.java` (63):225
+plain	1	'resume'	AutoBlockMiner.java` (63):230
+plain	1	'help'	AutoBlockMiner.java` (63):266
+plain	1	'MODULES'	Purge.java` (39):212
+plain	7	'Range (chunks)'	AncientCityFinder.java` (15):41
+plain	6	'Auto Waypoint'	AncientCityFinder.java` (15):43
+plain	6	'Show Marker'	AncientCityFinder.java` (15):44
+plain	3	'Others'	AnonymousSkin.java` (8):10
+plain	5	'Accent'	BlockFill.java` (46):40
+plain	4	'Custom'	BlockFill.java` (46):40
+plain	8	'Glow'	BlockFill.java` (46):43
+plain	6	'Rainbow'	BlockFill.java` (46):44
+plain	4	'Star'	HitParticles.java` (18):16
+plain	4	'Sparkle'	HitParticles.java` (18):16
+plain	5	'Heart'	HitParticles.java` (18):16
+plain	6	'Snow'	HitParticles.java` (18):16
+plain	2	'Ring'	HitParticles.java` (18):16
+plain	3	'Wave'	HudOverlay.java` (132):43
+plain	4	'White'	HudOverlay.java` (132):43
+plain	14	'Clear'	HudOverlay.java` (132):47
+plain	1	'FPS'	HudOverlay.java` (132):305
+plain	2	'Bold Circle'	JumpCircles.java` (25):21
+plain	2	'Hexagon'	JumpCircles.java` (25):21
+plain	4	'Portal'	JumpCircles.java` (25):21
+plain	5	'Sci-Fi'	JumpCircles.java` (25):21
+plain	7	'Soul Wireframe'	KillEffects.java` (27):26
+plain	2	'Lightning'	KillEffects.java` (27):32
+plain	2	'Hearts'	KillEffects.java` (27):32
+plain	3	'Stars'	KillEffects.java` (27):32
+plain	1	'Notifications'	Notifications.java` (17):88
+plain	3	'Aurora'	SkyArt.java` (92):46
+plain	2	'Daylight'	SkyArt.java` (92):47
+plain	3	'Nebula'	SkyArt.java` (92):47
+plain	3	'Sunset Haze'	SkyArt.java` (92):47
+plain	3	'Storm'	SkyArt.java` (92):47
+plain	2	'Low'	SkyArt.java` (92):53
+plain	2	'Medium'	SkyArt.java` (92):53
+plain	2	'Ultra'	SkyArt.java` (92):53
+plain	2	'Rain'	WorldTime.java` (11):19
+plain	2	'Thunder'	WorldTime.java` (11):19
+plain	2	'key'	KeybindSetting.java` (1):37
+plain	4	'color'	ShaderEsp.java` (75):321
+plain	3	'HUD'	CardGui.java` (39):61
+plain	1	'CONFIG'	CardGui.java` (39):599
+plain	1	'THEME'	CardGui.java` (39):599
+plain	1	'DONUT'	CardGui.java` (39):599
+plain	1	'HEAD'	NoHurtCamMixin.java` (2):11
+plain	1	'boolean'	WebState.java` (11):93
+plain	1	'number'	WebState.java` (11):98
+plain	1	'select'	WebState.java` (11):100
+plain	1	'multi'	WebState.java` (11):101
+plain	1	'range'	WebState.java` (11):102
+plain	1	'slots'	WebState.java` (11):108
+plain	1	'list'	WebState.java` (11):110
+plain	1	'text'	WebState.java` (11):111

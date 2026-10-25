@@ -1,0 +1,43 @@
+Changed branch: uCardMaterial > 0.5. Replaced single magenta pool with three analytical ambient glow layers.
+Source inspiration: LegacyPort Glow.java at commit83aea53e57670908b2792640440b616b04665b6d, centers550/280,120/504,1140/-50 and radii520,460,310 in1100x700 coordinates. Adaptation uses static Gaussian falloff and current theme tint, not exact circle-stack raster or animation. No imported UI toolkit/assets.
+Paths:
+C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\glass-layers-20261022\MODIFIED_FILE.frag
+C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\glass-layers-20261022\DIFF_FILE.patch
+C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\glass-layers-20261022\VERIFICATION.txt
+C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\glass-layers-20261022\ROLLBACK.sh
+BASELINE command: artifacts/glass-gradient-20261022/test-venv/Scripts/python.exe artifacts/glass-layers-20261022/shader-test/verify_shader.py
+Input: previous shader and checker/bright fixtures. Exit0.
+PASS: actual baseline and modified shaders compile/link on NVIDIA GeForce RTX 5060 Laptop GPU/PCIe/SSE2
+PASS: legacy output preserved, max RGBA difference 0.0
+PASS: 4 resolutions, finite output, transparent outside/rounded corners, interior alpha, magenta pool and dark-right gradient
+baseline [1280, 720] checker-gradient GPU median ms 0.0172
+legacy [1280, 720] checker-gradient GPU median ms 0.0172
+cards [1280, 720] checker-gradient GPU median ms 0.0173
+cards [1280, 720] bright-flat GPU median ms 0.0173
+cards [854, 480] bright-flat GPU median ms 0.0088
+cards [1920, 1080] bright-flat GPU median ms 0.0389
+cards [2560, 1440] bright-flat GPU median ms 0.1199
+
+MODIFIED command: artifacts/glass-gradient-20261022/test-venv/Scripts/python.exe artifacts/glass-layers-20261022/shader-test/verify_shader.py
+Input: three-layer shader/same fixtures. Exit0.
+PASS: actual baseline and modified shaders compile/link on NVIDIA GeForce RTX 5060 Laptop GPU/PCIe/SSE2
+PASS: legacy output preserved, max RGBA difference 0.0
+PASS: 4 resolutions, finite output, transparent outside/rounded corners, interior alpha, magenta pool and dark-right gradient
+baseline [1280, 720] checker-gradient GPU median ms 0.0172
+legacy [1280, 720] checker-gradient GPU median ms 0.0172
+cards [1280, 720] checker-gradient GPU median ms 0.018
+cards [1280, 720] bright-flat GPU median ms 0.0177
+cards [854, 480] bright-flat GPU median ms 0.0091
+cards [1920, 1080] bright-flat GPU median ms 0.0398
+cards [2560, 1440] bright-flat GPU median ms 0.1385
+
+ROLLBACK command: python "C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\glass-layers-20261022\rollback.py" "C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\glass-layers-20261022\rollback-test"
+Input: separate modified copy. Exit0.
+ROLLBACK PASS: original shader hash and single-gradient material restored
+
+Restored original SHA256 on test copy; live file remains modified. Glass transmission/refraction/layout unchanged.
+Offscreen preview inspected; in-game match unverified. GPU times panel-only, excluding copy/blur.
+
+BUILD command: gradle.bat build --offline -Parchives_base_name=utilitymod-layered-glass --console=plain
+Result: BUILD SUCCESSFUL in 17s; exit0. Packaged shader matches.
+JAR: C:\Users\fakemoon\Documents\Default Project\utility-mod\build\libs\utilitymod-layered-glass-1.0.0.jar

@@ -1,0 +1,50 @@
+Changed branch/field: uCardMaterial > 0.5 in lg_tinted.frag, scoped GlassRenderer.cardMaterial, CardGui shell/card alpha.
+Layout and input unchanged. Deep plum/magenta gradient, dark-right pigment, <=4 GUI-pixel rim lens, subdued outlines.
+MODIFIED_FILE: C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\glass-gradient-20261022\MODIFIED_FILE
+DIFF_FILE: C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\glass-gradient-20261022\DIFF_FILE.patch
+VERIFICATION: C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\glass-gradient-20261022\VERIFICATION.txt
+ROLLBACK: C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\glass-gradient-20261022\ROLLBACK.sh
+Original SHA-256 manifest: C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\glass-gradient-20261022\manifest.json
+
+BASELINE/MODIFIED command (cwd C:\Users\fakemoon\Documents\Default Project\utility-mod):
+artifacts/glass-gradient-20261022/test-venv/Scripts/python.exe artifacts/glass-gradient-20261022/shader-test/verify_shader.py
+Input: saved original and modified actual GLSL with lg_quad.vert; checker-gradient and bright-flat textures, 854x480 through 2560x1440.
+Literal output:
+PASS: actual baseline and modified shaders compile/link on NVIDIA GeForce RTX 5060 Laptop GPU/PCIe/SSE2
+PASS: legacy output preserved, max RGBA difference 0.000171661376953125
+PASS: 4 resolutions, finite output, transparent outside/rounded corners, interior alpha, magenta pool and dark-right gradient
+baseline [1280, 720] checker-gradient GPU median ms 0.0171
+legacy [1280, 720] checker-gradient GPU median ms 0.0172
+cards [1280, 720] checker-gradient GPU median ms 0.0172
+cards [1280, 720] bright-flat GPU median ms 0.0173
+cards [854, 480] bright-flat GPU median ms 0.0087
+cards [1920, 1080] bright-flat GPU median ms 0.0385
+cards [2560, 1440] bright-flat GPU median ms 0.1082
+
+Exit status: 0
+GPU timings above measure panel only, not backdrop capture/blur or Minecraft integration.
+
+MODIFIED state command:
+"C:\Program Files\Eclipse Adoptium\jdk-21.0.12.8-hotspot\bin\java.exe" -cp "C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\glass-gradient-20261022" ScopedMaterialTest
+Input: extracted actual flushCard method, normal and throwing flush stubs.
+Literal output: MODIFIED PASS: scoped Cards state restored on success and exception
+Exit status: 0
+
+BUILD command:
+JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-21.0.12.8-hotspot
+C:\Users\fakemoon\.gradle\wrapper\dists\gradle-8.14.5-bin\690y85m0j9nfaub7xoiayko8a\gradle-8.14.5\bin\gradle.bat build --offline -Parchives_base_name=utilitymod-gradient-glass --console=plain
+Literal result: BUILD SUCCESSFUL in 1m 25s
+Exit status: 0
+JAR reopened; packaged shader equals modified source.
+JAR: C:\Users\fakemoon\Documents\Default Project\utility-mod\build\libs\utilitymod-gradient-glass-1.0.0.jar
+SHA-256: efb8f56670f9f4ddad977395487bb2fdcb72de0f0222ae709d3b0e18ea3b3a9a
+
+ROLLBACK command:
+python "C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\glass-gradient-20261022\rollback.py" "C:\Users\fakemoon\Documents\Default Project\utility-mod\artifacts\glass-gradient-20261022\rollback-test"
+Input: separate copy of the three modified files.
+Literal output: ROLLBACK PASS: 3 original SHA-256 hashes restored; original material restored
+Exit status: 0
+Restored status: all three original hashes match; original material source restored on test copy. Live workspace and MODIFIED_FILE remain modified.
+ROLLBACK.sh is a shell entry point invoking this tested helper; Windows run used python directly.
+
+Visual inspection: cards-bright.png shows saturated lower-left magenta, plum top, dark right and rounded rim. Offscreen fixture, not an in-game screenshot. In-game 1:1 match remains unverified.

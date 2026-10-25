@@ -1,0 +1,213 @@
+{
+  "gpu": "Intel(R) RaptorLake-S Mobile Graphics Controller",
+  "vendor": "Intel",
+  "version": "3.3.0 - Build 32.0.101.7088",
+  "scope": "Actual GLSL compiled and rendered in standalone WGL context; no Minecraft text/UI or Java GL-state integration executed.",
+  "tests": [
+    {
+      "label": "baseline",
+      "resolution": [
+        1280,
+        720
+      ],
+      "scene": "checker-gradient",
+      "gpu_panel_only_median_ms": 1.6888299999999998,
+      "gpu_panel_only_max_ms": 1.908036,
+      "top": [
+        0.46324068307876587,
+        0.41620588302612305,
+        0.46545490622520447
+      ],
+      "lower_left": [
+        0.46324068307876587,
+        0.2749177813529968,
+        0.46545490622520447
+      ],
+      "lower_right": [
+        0.6330305933952332,
+        0.2749177813529968,
+        0.5483871102333069
+      ],
+      "alpha_center": 0.9200000166893005,
+      "finite": "PASS",
+      "rounded_mask": "PASS"
+    },
+    {
+      "label": "legacy",
+      "resolution": [
+        1280,
+        720
+      ],
+      "scene": "checker-gradient",
+      "gpu_panel_only_median_ms": 1.47836,
+      "gpu_panel_only_max_ms": 1.730924,
+      "top": [
+        0.46324068307876587,
+        0.41620588302612305,
+        0.46545490622520447
+      ],
+      "lower_left": [
+        0.46324068307876587,
+        0.2749177813529968,
+        0.46545490622520447
+      ],
+      "lower_right": [
+        0.6330305933952332,
+        0.2749177813529968,
+        0.5483871102333069
+      ],
+      "alpha_center": 0.9200000166893005,
+      "finite": "PASS",
+      "rounded_mask": "PASS"
+    },
+    {
+      "label": "cards",
+      "resolution": [
+        1280,
+        720
+      ],
+      "scene": "checker-gradient",
+      "gpu_panel_only_median_ms": 1.5916160000000001,
+      "gpu_panel_only_max_ms": 1.610856,
+      "top": [
+        0.3934451937675476,
+        0.26412224769592285,
+        0.3980562388896942
+      ],
+      "lower_left": [
+        0.5331162214279175,
+        0.18152184784412384,
+        0.45998454093933105
+      ],
+      "lower_right": [
+        0.36429116129875183,
+        0.15531247854232788,
+        0.3337578773498535
+      ],
+      "alpha_center": 0.9200000166893005,
+      "finite": "PASS",
+      "rounded_mask": "PASS"
+    },
+    {
+      "label": "cards",
+      "resolution": [
+        1280,
+        720
+      ],
+      "scene": "bright-flat",
+      "gpu_panel_only_median_ms": 1.38892,
+      "gpu_panel_only_max_ms": 1.599104,
+      "top": [
+        0.5741884112358093,
+        0.3306678831577301,
+        0.5489104986190796
+      ],
+      "lower_left": [
+        0.7138594388961792,
+        0.3233613073825836,
+        0.610838770866394
+      ],
+      "lower_right": [
+        0.44378042221069336,
+        0.2758174240589142,
+        0.4251042306423187
+      ],
+      "alpha_center": 0.9200000166893005,
+      "finite": "PASS",
+      "rounded_mask": "PASS",
+      "directional_gradient": "PASS"
+    },
+    {
+      "label": "cards",
+      "resolution": [
+        854,
+        480
+      ],
+      "scene": "bright-flat",
+      "gpu_panel_only_median_ms": 0.624754,
+      "gpu_panel_only_max_ms": 0.6617,
+      "top": [
+        0.5740771293640137,
+        0.3306739330291748,
+        0.5488622784614563
+      ],
+      "lower_left": [
+        0.7137275338172913,
+        0.3233746588230133,
+        0.6108231544494629
+      ],
+      "lower_right": [
+        0.4436432421207428,
+        0.2757759690284729,
+        0.424974650144577
+      ],
+      "alpha_center": 0.9200000166893005,
+      "finite": "PASS",
+      "rounded_mask": "PASS",
+      "directional_gradient": "PASS"
+    },
+    {
+      "label": "cards",
+      "resolution": [
+        1920,
+        1080
+      ],
+      "scene": "bright-flat",
+      "gpu_panel_only_median_ms": 2.328846,
+      "gpu_panel_only_max_ms": 2.457936,
+      "top": [
+        0.5739911794662476,
+        0.330681174993515,
+        0.5488379597663879
+      ],
+      "lower_left": [
+        0.7136679291725159,
+        0.3233826756477356,
+        0.6108222603797913
+      ],
+      "lower_right": [
+        0.4438985586166382,
+        0.275849312543869,
+        0.42521265149116516
+      ],
+      "alpha_center": 0.9200000166893005,
+      "finite": "PASS",
+      "rounded_mask": "PASS",
+      "directional_gradient": "PASS"
+    },
+    {
+      "label": "cards",
+      "resolution": [
+        2560,
+        1440
+      ],
+      "scene": "bright-flat",
+      "gpu_panel_only_median_ms": 4.114656,
+      "gpu_panel_only_max_ms": 4.35864,
+      "top": [
+        0.5740771293640137,
+        0.3306739330291748,
+        0.5488622784614563
+      ],
+      "lower_left": [
+        0.7137967348098755,
+        0.3233688175678253,
+        0.6108349561691284
+      ],
+      "lower_right": [
+        0.44392773509025574,
+        0.2758587598800659,
+        0.42524075508117676
+      ],
+      "alpha_center": 0.9200000166893005,
+      "finite": "PASS",
+      "rounded_mask": "PASS",
+      "directional_gradient": "PASS"
+    }
+  ],
+  "baseline_compile": "PASS",
+  "legacy_compile": "PASS",
+  "cards_compile": "PASS",
+  "legacy_max_absolute_rgba_delta": 0.0,
+  "shader_sha256": "594abba7fd7f0233823a9ec769fb668e57476ffbf99acca4ed7d5f9cb13b59e5"
+}
