@@ -664,7 +664,7 @@ public final class WaterGui extends Screen {
                     yy += 16 * s;
                     section = want;
                 }
-                float rh = (c instanceof dev.koifih.client.ui.component.Slider ? 36 : c instanceof dev.koifih.client.ui.component.Bool ? 24 : 26) * s;
+                float rh = (c instanceof dev.koifih.client.ui.component.TextInput ? 36 : c instanceof dev.koifih.client.ui.component.Slider ? 36 : c instanceof dev.koifih.client.ui.component.Bool ? 24 : 26) * s;
                 boolean inView = yy + rh > top && yy < bottom;
                 c.visible = inView;
                 c.active = inView;
@@ -674,6 +674,10 @@ public final class WaterGui extends Screen {
                         String val = sl.shownValue();
                         Text.drawCentered(g, val, rx - Text.width(val, 8 * s), yy + 8 * s, 8 * s, INK);
                         c.setX(Math.round(lx)); c.setWidth(Math.round(cw)); c.setHeight(Math.round(12 * s)); c.setY(Math.round(yy + 18 * s));
+                    } else if (c instanceof dev.koifih.client.ui.component.TextInput) {
+                        // text setting: label on top, full-width box below
+                        Text.drawCentered(g, row.setting().getName(), lx, yy + 8 * s, 8 * s, INK);
+                        c.setX(Math.round(lx)); c.setWidth(Math.round(cw)); c.setHeight(Math.round(16 * s)); c.setY(Math.round(yy + 16 * s));
                     } else if (c instanceof dev.koifih.client.ui.component.popup.Popup) {
                         c.setX(Math.round(lx - 6 * s)); c.setY(Math.round(yy + 2 * s)); c.setWidth(Math.round(cw + 12 * s)); c.setHeight(Math.round(rh - 4 * s));
                     } else {
@@ -802,7 +806,11 @@ public final class WaterGui extends Screen {
             for (var c : controls) if (c instanceof dev.koifih.client.ui.component.Keybind k && k.captureMouse(click)) return true;
             for (var c : controls) if (c instanceof dev.koifih.client.ui.component.popup.Popup p && p.isOpen() && p.mouseClicked(click, doubled)) return true;
             for (var c : controls) {
-                if (c.active && c.visible && c.isMouseOver(click.x(), click.y())) { focus = c; c.onClick(click, doubled); return true; }
+                if (c.active && c.visible && c.isMouseOver(click.x(), click.y())) {
+                    for (var o : controls) if (o != c && o instanceof dev.koifih.client.ui.component.TextInput ti) ti.setFocused(false);
+                    if (c instanceof dev.koifih.client.ui.component.TextInput ti) ti.setFocused(true);
+                    focus = c; c.onClick(click, doubled); return true;
+                }
             }
         }
         boolean wasSearch = searchFocus, wasName = nameFocus;
@@ -860,6 +868,20 @@ public final class WaterGui extends Screen {
             return true;
         }
         if (sheetInput()) {
+            if (focus instanceof dev.koifih.client.ui.component.TextInput ti && ti.capturesInput()
+                    && (e.modifiers() & GLFW.GLFW_MOD_CONTROL) == 0) {
+                // type from key presses (char events don't always reach this screen)
+                String kn = GLFW.glfwGetKeyName(k, e.scancode());
+                char ch = 0;
+                if (kn != null && kn.length() == 1) ch = kn.charAt(0);
+                else if (k == GLFW.GLFW_KEY_SPACE) ch = ' ';
+                if (ch != 0) {
+                    if ((e.modifiers() & GLFW.GLFW_MOD_SHIFT) != 0) ch = Character.toUpperCase(ch);
+                    ti.charTyped(new net.minecraft.client.input.CharInput(ch, e.modifiers()));
+                    typedViaKey = true;
+                    return true;
+                }
+            }
             if (focus != null && focus.capturesInput() && focus.keyPressed(e)) { typedViaKey = true; return true; }
             for (var c : controls) if (c.capturesInput() && c.keyPressed(e)) { typedViaKey = true; return true; }
             if (k == GLFW.GLFW_KEY_ESCAPE) { backFromSheet(); return true; }

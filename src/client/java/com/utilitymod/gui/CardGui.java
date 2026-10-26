@@ -872,6 +872,20 @@ public final class CardGui extends Screen {
             d.setBottomLimit(bottomLimit);
             return d;
         }
+        if (st instanceof com.utilitymod.echo.features.settings.impl.StringSetting str) {
+            // the setting trims its value, which would eat a trailing space mid-typing: keep the raw draft for the box
+            String[] draft = {str.getValue() == null ? "" : str.getValue()};
+            var in = new TextInput(0, 0, Math.round(120 * scale), fieldH, scale, label, 256,
+                    () -> {
+                        String saved = str.getValue() == null ? "" : str.getValue();
+                        return draft[0].trim().equals(saved) ? draft[0] : saved;   // changed elsewhere (config load): show that
+                    },
+                    v -> { draft[0] = v; str.setValue(v); });
+            in.setFocused(false);
+            in.setPlaceholder("Type here...");
+            in.setSurface(0x14FFFFFF, 0xFFE8ECF3, 0xFF8C93A3, 28, 36);
+            return in;
+        }
         if (st instanceof KeybindSetting k) {
             Keybind kb = new Keybind(0, 0, Math.round(56 * scale), fieldH, scale, label,
                     () -> {

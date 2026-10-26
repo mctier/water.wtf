@@ -1,8 +1,6 @@
 package com.utilitymod.echo.handlers;
 
-import com.utilitymod.echo.event.EventManager;
-import com.utilitymod.echo.event.EventSubscribe;
-import com.utilitymod.echo.event.impl.EventMove;
+import com.utilitymod.echo.features.impl.combat.SilentRotations;
 import com.utilitymod.echo.utils.rotation.RotationUtils;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.hit.BlockHitResult;
@@ -14,21 +12,21 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.RaycastContext;
 
 /**
- * Server-side-only rotations (LegacyPort RotationManager model), shared by the crystal-pvp modules.
+ * Server-side rotation front-end at the clarity engine (the commit-on-tick
+ * exchange in {@link RotationHandler} + the local-player swap in the silent
+ * rotation mixin). The module surface every crystal-pvp caller compiles with
+ * is unchanged, but the movement-swap engine of the old LegacyPort model no
+ * longer runs: the silent rotation engine's tick-commit is the only authority.
  *
- * <p>Modules call {@link #request} (or {@link #lookAt}) every tick they want to aim, from their input-phase
- * handler. Right before the vanilla movement packet the highest-priority request of the tick wins: the
- * server look eases toward it, is swapped into the player AND the outgoing packet values, and the real
- * camera rotation is put back right after the packet. The camera, crosshair and mouse never move.
- *
- * <p>Interactions must ride the look the server already received: act only when {@link #sentHits}/
- * {@link #sentHitsBlock} say the last SENT rotation covers the target, which is always on a later input
- * pass than the packet that carried it (so the order is look → interact, never the reverse).
+ * <p>High-priority per-tick request resolution stays here though (the request
+ * is written into {@link RotationHandler} so the mixin is what commits it). Modules
+ * still call {@link #request} (or {@link #lookAt}) every tick they want to aim.
+ * Interactions must ride the look the server already received: act only when
+ * {@link #sentHits}/{@link #sentHitsBlock} say the last SENT rotation covers
+ * the target.
  */
 public final class ServerRotations {
     private static final MinecraftClient mc = MinecraftClient.getInstance();
-    private static final ServerRotations INSTANCE = new ServerRotations();
-    private static boolean registered;
     /** Show the server-side yaw on your own player model (third person). */
     public static volatile boolean showOnModel = true;
 
@@ -37,24 +35,18 @@ public final class ServerRotations {
     private static int priority = Integer.MIN_VALUE;
     private static long requestTick = -1, tick;
 
-    private static boolean active, swapped;
-    private static float sYaw, sPitch, prevYaw, prevPitch;
+    private static boolean active;
     private static float sentYaw, sentPitch;
     private static Object sentOwner;
 
-    private static float rYaw, rPitch, rBody, rHead, rLastYaw, rLastPitch, rLastBody, rLastHead;
-
     private ServerRotations() {}
 
+    /** Engine turn-up: nothing to wire anymore — kept for all legacy init() callers. */
     public static void init() {
-        if (registered) return;
-        registered = true;
-        EventManager.register(INSTANCE);
     }
 
     /** Ask for a server look this tick. Higher priority wins; speed is the 0..1 share of the gap closed per tick. */
     public static void request(Object who, float yaw, float pitch, float spd, int prio) {
-        init();
         if (requestTick == tick && prio < priority) return;
         owner = who;
         goalYaw = yaw;
@@ -62,6 +54,13 @@ public final class ServerRotations {
         speed = MathHelper.clamp(spd, 0.05f, 1f);
         priority = prio;
         requestTick = tick;
+        // commit-on-tick: the winner of this tick's request drives the engine's silent state
+        if (mc.player != null) {
+            active = true;
+            sentOwner = owner;
+            RotationHandler.setServerRotationsWithDelta(goalYaw, goalPitch);
+            RotationHandler.setHasSilentRotation(true);
+        }
     }
 
     public static void lookAt(Object who, Vec3d point, float spd, int prio) {
@@ -82,8 +81,9 @@ public final class ServerRotations {
     /** Interpolated server yaw/pitch for drawing your own model, or null when not overriding. */
     public static float[] renderRotation(float tickDelta) {
         if (!active || !showOnModel) return null;
-        float yaw = prevYaw + MathHelper.wrapDegrees(sYaw - prevYaw) * tickDelta;
-        float pitch = prevPitch + (sPitch - prevPitch) * tickDelta;
+        float yaw = RotationHandler.getServerYaw();
+        float pitch = RotationHandler.getServerPitch();
+        if (!Float.isFinite(yaw) || !Float.isFinite(pitch)) return null;
         return new float[]{yaw, pitch};
     }
     public static boolean ownedBy(Object who) { return active && sentOwner == who; }
@@ -120,62 +120,21 @@ public final class ServerRotations {
         return b != null && b.getBlockPos().equals(pos);
     }
 
-    @EventSubscribe(priority = EventSubscribe.Priority.LOWEST)
-    @SuppressWarnings("unused")
-    private void onMovePre(EventMove.Pre event) {
-        var p = mc.player;
-        if (p == null) return;
+    /** Called once per client tick (from {@code EchoEvents.tick}) to retire the tick's request window. */
+    public static void tickWindow() {
         boolean requested = requestTick == tick;
-        if (!active) { sYaw = p.getYaw(); sPitch = p.getPitch(); }
-        prevYaw = sYaw;
-        prevPitch = sPitch;
-        float gy = requested ? goalYaw : p.getYaw(), gp = requested ? goalPitch : p.getPitch();
-        float k = requested ? speed : 0.5f;
-        float ny = sYaw + MathHelper.wrapDegrees(gy - sYaw) * k;
-        float np = MathHelper.clamp(sPitch + (gp - sPitch) * k, -90f, 90f);
-        float[] snapped = RotationUtils.applyGCD(new float[]{ny, np}, new float[]{sYaw, sPitch});
-        sYaw = snapped[0];
-        sPitch = MathHelper.clamp(snapped[1], -90f, 90f);
-        float off = Math.abs(MathHelper.wrapDegrees(sYaw - p.getYaw())) + Math.abs(sPitch - p.getPitch());
-        active = requested || off > 0.5f;
-        if (!active) {
+        if (!requested) {
+            active = false;
             sentOwner = null;
-            return;
-        }
-        rYaw = p.getYaw(); rPitch = p.getPitch(); rBody = p.bodyYaw; rHead = p.headYaw;
-        rLastYaw = p.lastYaw; rLastPitch = p.lastPitch; rLastBody = p.lastBodyYaw; rLastHead = p.lastHeadYaw;
-        p.setYaw(sYaw);
-        p.setPitch(sPitch);
-        p.bodyYaw = sYaw;
-        p.headYaw = sYaw;
-        p.lastYaw = prevYaw; p.lastPitch = prevPitch; p.lastBodyYaw = prevYaw; p.lastHeadYaw = prevYaw;
-        // the packet's yaw/pitch are taken from this event after dispatch, not from the player fields
-        event.setYaw(sYaw);
-        event.setPitch(sPitch);
-        swapped = true;
-        sentOwner = requested ? owner : null;
-    }
-
-    @EventSubscribe(priority = EventSubscribe.Priority.HIGHEST)
-    @SuppressWarnings("unused")
-    private void onMovePost(EventMove.Post event) {
-        var p = mc.player;
-        if (swapped && p != null) {
-            sentYaw = sYaw;
-            sentPitch = sPitch;
-            p.setYaw(rYaw); p.setPitch(rPitch); p.bodyYaw = rBody; p.headYaw = rHead;
-            p.lastYaw = rLastYaw; p.lastPitch = rLastPitch; p.lastBodyYaw = rLastBody; p.lastHeadYaw = rLastHead;
-            if (showOnModel) {
-                // visual only: turn your own model's head/body to the server yaw for third person.
-                // The camera follows yaw/pitch, not these, so your view is untouched.
-                p.headYaw = sYaw; p.bodyYaw = sYaw;
-                p.lastHeadYaw = prevYaw; p.lastBodyYaw = prevYaw;
+            if (RotationHandler.isHasSilentRotation()) {
+                RotationHandler.reset();
             }
-        } else if (p != null) {
-            sentYaw = p.getYaw();
-            sentPitch = p.getPitch();
         }
-        swapped = false;
+        if (mc.player != null) {
+            // the actually-SENT rotation this tick is the engine state consumed by the movement packets
+            sentYaw = RotationHandler.getServerYaw();
+            sentPitch = RotationHandler.getServerPitch();
+        }
         tick++;
         priority = Integer.MIN_VALUE;
     }

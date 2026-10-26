@@ -3,9 +3,14 @@
   "minVersion": "0.8",
   "package": "com.utilitymod.mixins",
   "compatibilityLevel": "JAVA_21",
-  "refmap": "utilitymod.refmap.json",
+  "refmap": "client-utilitymod.refmap.json",
   "client": [
-    "NoHurtCamMixin"
+    "NoHurtCamMixin",
+    "ClientPlayerEntitySilentRotationMixin",
+    "EntitySilentRotationMixin",
+    "LivingEntitySilentCombatMixin",
+    "PlayerSilentRotationMixin",
+    "ClientPlayerInteractionManagerSilentRotationMixin"
   ],
   "injectors": {
     "defaultRequire": 1

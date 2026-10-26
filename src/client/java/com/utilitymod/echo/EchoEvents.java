@@ -99,6 +99,7 @@ public final class EchoEvents {
     public static void tick() {
         com.utilitymod.gui.SelfTest.onTick();
         new EventTick().call();
+        try { com.utilitymod.echo.handlers.ServerRotations.tickWindow(); } catch (Throwable ignored) {}
         try { com.utilitymod.anubis.AnubisBridge.tick(); } catch (Throwable ignored) {}
     }
 

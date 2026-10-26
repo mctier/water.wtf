@@ -16,6 +16,11 @@ loom {
     // Split jar - client only mod
     splitEnvironmentSourceSets()
 
+    mixin {
+        useLegacyMixinAp = true
+        defaultRefmapName = "utilitymod.refmap.json"
+    }
+
     mods {
         utilitymod {
             sourceSet sourceSets.main

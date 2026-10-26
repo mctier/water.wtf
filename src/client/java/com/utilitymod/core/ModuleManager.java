@@ -43,6 +43,7 @@ public final class ModuleManager {
         register(new com.utilitymod.echo.features.impl.combat.SpearLungeModule());
         register(new com.utilitymod.echo.features.impl.combat.SpearReachModule());
         register(new com.utilitymod.echo.features.impl.combat.TotemHitModule());
+        register(new com.utilitymod.echo.features.impl.combat.SilentRotations());
         register(new com.utilitymod.echo.features.impl.movement.Sprint());
         register(new com.utilitymod.echo.features.impl.movement.KeepSprintModule());
         register(new com.utilitymod.echo.features.impl.movement.Speed());
@@ -95,6 +96,8 @@ public final class ModuleManager {
         register(new com.utilitymod.echo.features.impl.render.BlockFill());
         register(new com.utilitymod.echo.features.impl.render.SkyArt());
         register(new com.utilitymod.echo.features.impl.render.VillageFinder());
+        register(new com.utilitymod.echo.features.impl.render.MobFinder());
+        register(new com.utilitymod.echo.features.impl.render.MommyAsmr());
         register(new com.utilitymod.echo.features.impl.render.AncientCityFinder());
         register(new com.utilitymod.echo.features.impl.render.BaseFinder());
         register(new com.utilitymod.echo.features.impl.misc.MinerFlow());
