@@ -33,6 +33,29 @@ public final class KillTracker {
         if (target instanceof LivingEntity) recentHits.put(target.getId(), System.currentTimeMillis());
     }
 
+    /** Fallback for servers that don't send the death status: a recently hit entity that is now dead / at 0 HP. */
+    public static void poll() {
+        MinecraftClient mc = MinecraftClient.getInstance();
+        if (mc.world == null) return;
+        long now = System.currentTimeMillis();
+        for (Map.Entry<Integer, Long> en : recentHits.entrySet()) {
+            if (now - en.getValue() > WINDOW_MS) { recentHits.remove(en.getKey()); continue; }
+            if (!(mc.world.getEntityById(en.getKey()) instanceof LivingEntity living) || living == mc.player) continue;
+            if (!living.isDead() && living.getHealth() > 0) continue;
+            recentHits.remove(en.getKey());
+            fire(living);
+        }
+    }
+
+    private static void fire(LivingEntity living) {
+        for (Consumer<LivingEntity> l : listeners) {
+            try {
+                l.accept(living);
+            } catch (Throwable ignored) {
+            }
+        }
+    }
+
     public static void onPacket(Packet<?> packet) {
         if (!(packet instanceof EntityStatusS2CPacket p) || p.getStatus() != DEATH) return;
         MinecraftClient mc = MinecraftClient.getInstance();
@@ -42,12 +65,7 @@ public final class KillTracker {
             if (!(e instanceof LivingEntity living) || e == mc.player) return;
             Long at = recentHits.remove(e.getId());
             if (at == null || System.currentTimeMillis() - at > WINDOW_MS) return;
-            for (Consumer<LivingEntity> l : listeners) {
-                try {
-                    l.accept(living);
-                } catch (Throwable ignored) {
-                }
-            }
+            fire(living);
         });
         long now = System.currentTimeMillis();
         recentHits.values().removeIf(t -> now - t > WINDOW_MS);

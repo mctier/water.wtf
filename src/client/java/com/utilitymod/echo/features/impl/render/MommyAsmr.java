@@ -1,5 +1,7 @@
 package com.utilitymod.echo.features.impl.render;
 
+import com.utilitymod.echo.event.EventSubscribe;
+import com.utilitymod.echo.event.impl.EventTick;
 import com.utilitymod.echo.features.Category;
 import com.utilitymod.echo.features.Feature;
 import com.utilitymod.echo.features.FeatureInfo;
@@ -39,22 +41,36 @@ public class MommyAsmr extends Feature {
         });
     }
 
+    @Override
+    public void onEnable() {
+        super.onEnable();
+        play();   // preview so you can hear it works
+    }
+
+    @EventSubscribe
+    @SuppressWarnings("unused")
+    private void onTick(EventTick e) {
+        KillTracker.poll();
+    }
+
     private void play() {
         long now = System.currentTimeMillis();
         if (now - lastPlay < 300) return;   // one clip per kill, even if the kill is reported twice
         lastPlay = now;
-        String pick = sound.getValue().toString();
-        String file = pick.equals("Random") ? CLIPS[ThreadLocalRandom.current().nextInt(CLIPS.length)] : pick.toLowerCase();
+        // ModeSetting values are I18nText, so match with is() rather than toString()
+        String file = CLIPS[ThreadLocalRandom.current().nextInt(CLIPS.length)];
+        for (String c : CLIPS) if (sound.is(c.toUpperCase())) file = c;
+        final String clipFile = file;
         float vol = volume.getValue() / 100f;
         // decode + play off the game thread so a kill never hitches a frame
-        Thread t = new Thread(() -> playClip(file, vol), "mommy-asmr");
+        Thread t = new Thread(() -> playClip(clipFile, vol), "mommy-asmr");
         t.setDaemon(true);
         t.start();
     }
 
     private static void playClip(String file, float vol) {
         try (InputStream raw = MommyAsmr.class.getResourceAsStream("/assets/utilitymod/sounds/mommy/" + file + ".wav")) {
-            if (raw == null) return;
+            if (raw == null) { com.utilitymod.UtilityMod.LOGGER.warn("Mommy ASMR: missing clip {}", file); return; }
             AudioInputStream in = AudioSystem.getAudioInputStream(new BufferedInputStream(raw));
             Clip clip = AudioSystem.getClip();
             clip.open(in);
@@ -67,8 +83,8 @@ public class MommyAsmr extends Feature {
                 if (ev.getType() == javax.sound.sampled.LineEvent.Type.STOP) clip.close();
             });
             clip.start();
-        } catch (Throwable ignored) {
-            // no audio device / unsupported format: stay silent
+        } catch (Throwable t) {
+            com.utilitymod.UtilityMod.LOGGER.warn("Mommy ASMR: could not play {}: {}", file, t.toString());
         }
     }
 }
